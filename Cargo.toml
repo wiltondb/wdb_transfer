@@ -1,0 +1,17 @@
+[package]
+name = "wdb_transfer"
+version = "1.0.0"
+authors = ["alex@wiltondb.com"]
+edition = "2018"
+
+[build-dependencies]
+embed-resource = "1.8"
+
+[dependencies]
+chrono = "0.4.30"
+clipboard-win = "4.5.0"
+duct = "0.13.6"
+native-tls = "0.2.11"
+nwg = {version = "1.0.12", package = "native-windows-gui", features = ["all", "flexbox"]}
+nwg_ui = {version = "1.0.0"}
+zip = { version = "0.6.6", default-features = false }

@@ -19,6 +19,8 @@
 mod common;
 mod about_dialog;
 mod app_window;
+mod connect_check_dialog;
+mod connect_dialog;
 
 use nwg::NativeUi;
 

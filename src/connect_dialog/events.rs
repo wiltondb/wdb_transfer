@@ -17,54 +17,45 @@
 use super::*;
 
 #[derive(Default)]
-pub(super) struct AppWindowEvents {
-    pub(super) events: Vec<ui::Event<AppWindow>>
+pub(super) struct ConnectDialogEvents {
+    pub(super) events: Vec<ui::Event<ConnectDialog>>
 }
 
-impl ui::Events<AppWindowControls> for AppWindowEvents {
-    fn build(&mut self, c: &AppWindowControls) -> Result<(), nwg::NwgError> {
+impl ui::Events<ConnectDialogControls> for ConnectDialogEvents {
+    fn build(&mut self, c: &ConnectDialogControls) -> Result<(), nwg::NwgError> {
         ui::event_builder()
             .control(&c.window)
             .event(nwg::Event::OnWindowClose)
-            .handler(AppWindow::close)
+            .handler(ConnectDialog::close)
             .build(&mut self.events)?;
         ui::event_builder()
             .control(&c.window)
             .event(nwg::Event::OnResizeEnd)
-            .handler(AppWindow::on_resize)
+            .handler(ConnectDialog::on_resize)
             .build(&mut self.events)?;
 
         ui::event_builder()
-            .control(&c.file_connect_menu_item)
-            .event(nwg::Event::OnMenuItemSelected)
-            .handler(AppWindow::open_connect_dialog)
-            .build(&mut self.events)?;
-        ui::event_builder()
-            .control(&c.file_exit_menu_item)
-            .event(nwg::Event::OnMenuItemSelected)
-            .handler(AppWindow::close)
+            .control(&c.port_input)
+            .event(nwg::Event::OnTextInput)
+            .handler(ConnectDialog::on_port_input_changed)
             .build(&mut self.events)?;
 
         ui::event_builder()
-            .control(&c.help_about_menu_item)
-            .event(nwg::Event::OnMenuItemSelected)
-            .handler(AppWindow::open_about_dialog)
-            .build(&mut self.events)?;
-        ui::event_builder()
-            .control(&c.help_website_menu_item)
-            .event(nwg::Event::OnMenuItemSelected)
-            .handler(AppWindow::open_website)
+            .control(&c.test_button)
+            .event(nwg::Event::OnButtonClick)
+            .handler(ConnectDialog::open_check_dialog)
             .build(&mut self.events)?;
 
         ui::event_builder()
-            .control(&c.about_notice.notice)
+            .control(&c.cancel_button)
+            .event(nwg::Event::OnButtonClick)
+            .handler(ConnectDialog::close)
+            .build(&mut self.events)?;
+
+        ui::event_builder()
+            .control(&c.check_notice.notice)
             .event(nwg::Event::OnNotice)
-            .handler(AppWindow::await_about_dialog)
-            .build(&mut self.events)?;
-        ui::event_builder()
-            .control(&c.connect_notice.notice)
-            .event(nwg::Event::OnNotice)
-            .handler(AppWindow::await_connect_dialog)
+            .handler(ConnectDialog::await_check_dialog)
             .build(&mut self.events)?;
 
         Ok(())

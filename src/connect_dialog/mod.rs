@@ -14,28 +14,34 @@
  * limitations under the License.
  */
 
+mod args;
 mod controls;
+mod dialog;
 mod events;
 mod layout;
 mod nui;
-mod window;
+mod result;
+
+use std::thread;
+
+use nwg::NativeUi;
 
 use crate::*;
 use nwg_ui as ui;
 use ui::Controls;
 use ui::Events;
 use ui::Layout;
+use ui::PopupArgs;
 use ui::PopupDialog;
 
-use about_dialog::AboutDialog;
-use about_dialog::AboutDialogArgs;
 use common::TdsConnConfig;
-use common::TransferError;
-use connect_dialog::ConnectDialog;
-use connect_dialog::ConnectDialogArgs;
-use connect_dialog::ConnectDialogResult;
+use connect_check_dialog::ConnectCheckDialog;
+use connect_check_dialog::ConnectCheckDialogArgs;
+use connect_check_dialog::ConnectCheckDialogResult;
 
-pub(self) use controls::AppWindowControls;
-pub(self) use events::AppWindowEvents;
-use layout::AppWindowLayout;
-pub use window::AppWindow;
+pub use args::ConnectDialogArgs;
+pub(self) use controls::ConnectDialogControls;
+pub use dialog::ConnectDialog;
+use events::ConnectDialogEvents;
+use layout::ConnectDialogLayout;
+pub use result::ConnectDialogResult;

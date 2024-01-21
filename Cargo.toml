@@ -13,5 +13,8 @@ clipboard-win = "4.5.0"
 duct = "0.13.6"
 native-tls = "0.2.11"
 nwg = {version = "1.0.12", package = "native-windows-gui", features = ["all", "flexbox"]}
-nwg_ui = {version = "1.0.0"}
+nwg_ui = "1.0.0"
+tiberius = "0.12.2"
+tokio = { version = "1", features = ["net", "rt"] }
+tokio-util = { version = "0.7", features = ["compat"] }
 zip = { version = "0.6.6", default-features = false }

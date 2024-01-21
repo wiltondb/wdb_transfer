@@ -26,7 +26,10 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 pub struct AppWindow {
     pub(super) c: AppWindowControls,
 
+    conn_config: TdsConnConfig,
+
     about_dialog_join_handle: ui::PopupJoinHandle<()>,
+    connect_dialog_join_handle: ui::PopupJoinHandle<ConnectDialogResult>,
 }
 
 impl AppWindow {
@@ -36,8 +39,16 @@ impl AppWindow {
     }
 
     pub(super) fn init(&mut self) {
+        self.conn_config.hostname = String::from("localhost");
+        self.conn_config.port = 1433;
+        self.conn_config.username = String::from("wilton");
+        // todo: removeme
+        self.conn_config.password = String::from("wilton");
+        self.conn_config.database = String::from("master");
+        self.conn_config.accept_invalid_tls = true;
 
         self.set_status_bar_dbconn_label("none");
+        self.open_connect_dialog(nwg::EventData::NoData);
     }
 
     pub(super) fn close(&mut self, _: nwg::EventData) {
@@ -55,6 +66,25 @@ impl AppWindow {
         self.c.window.set_enabled(true);
         self.c.about_notice.receive();
         let _ = self.about_dialog_join_handle.join();
+    }
+
+    pub(super) fn open_connect_dialog(&mut self, _: nwg::EventData) {
+        self.c.window.set_enabled(false);
+        let args = ConnectDialogArgs::new(&self.c.connect_notice, self.conn_config.clone());
+        self.connect_dialog_join_handle = ConnectDialog::popup(args);
+    }
+
+    pub(super) fn await_connect_dialog(&mut self, _: nwg::EventData) {
+        self.c.window.set_enabled(true);
+        self.c.connect_notice.receive();
+        let res = self.connect_dialog_join_handle.join();
+        if !res.cancelled {
+            //self.set_dbnames(&res.dbnames, &res.bbf_db);
+            self.conn_config = res.conn_config;
+            let sbar_label = format!(
+                "{}:{}", &self.conn_config.hostname, &self.conn_config.port);
+            self.set_status_bar_dbconn_label(&sbar_label);
+        }
     }
 
     pub(super) fn open_website(&mut self, _: nwg::EventData) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023, WiltonDB Software
+ * Copyright 2024, WiltonDB Software
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,24 @@
  * limitations under the License.
  */
 
-pub mod labels;
-mod tds_conn_config;
-mod transfer_error;
-mod zip_dir;
+#[derive(Default, Clone)]
+pub struct ConnectCheckDialogResult {
+    pub success: bool,
+    pub message: String,
+}
 
-pub use tds_conn_config::TdsConnConfig;
-pub use transfer_error::TransferError;
-pub use zip_dir::zip_directory;
-pub use zip_dir::unzip_directory;
+impl ConnectCheckDialogResult {
+    pub(super) fn success(message: String) -> Self {
+        Self {
+            success: true,
+            message
+        }
+    }
+
+    pub(super) fn failure(message: String) -> Self {
+        Self {
+            success: false,
+            message
+        }
+    }
+}

@@ -14,28 +14,29 @@
  * limitations under the License.
  */
 
-mod controls;
-mod events;
-mod layout;
-mod nui;
-mod window;
+use super::*;
 
-use crate::*;
-use nwg_ui as ui;
-use ui::Controls;
-use ui::Events;
-use ui::Layout;
-use ui::PopupDialog;
+#[derive(Default)]
+pub struct ConnectCheckDialogArgs {
+    pub(super) notice_sender:  ui::SyncNoticeSender,
+    pub(super) conn_config: TdsConnConfig,
+}
 
-use about_dialog::AboutDialog;
-use about_dialog::AboutDialogArgs;
-use common::TdsConnConfig;
-use common::TransferError;
-use connect_dialog::ConnectDialog;
-use connect_dialog::ConnectDialogArgs;
-use connect_dialog::ConnectDialogResult;
+impl ConnectCheckDialogArgs {
+    pub fn new(notice: &ui::SyncNotice, conn_config: TdsConnConfig) -> Self {
+        Self {
+            notice_sender: notice.sender(),
+            conn_config,
+        }
+    }
 
-pub(self) use controls::AppWindowControls;
-pub(self) use events::AppWindowEvents;
-use layout::AppWindowLayout;
-pub use window::AppWindow;
+    pub fn send_notice(&self) {
+        self.notice_sender.send()
+    }
+}
+
+impl ui::PopupArgs for ConnectCheckDialogArgs {
+    fn notify_parent(&self) {
+        self.notice_sender.send()
+    }
+}

@@ -38,6 +38,7 @@ pub(super) struct AppWindowControls {
     pub(super) status_bar: nwg::StatusBar,
 
     pub(super) about_notice: ui::SyncNotice,
+    pub(super) connect_notice: ui::SyncNotice,
 }
 
 impl ui::Controls for AppWindowControls {
@@ -107,6 +108,9 @@ impl ui::Controls for AppWindowControls {
         ui::notice_builder()
             .parent(&self.window)
             .build(&mut self.about_notice)?;
+        ui::notice_builder()
+            .parent(&self.window)
+            .build(&mut self.connect_notice)?;
 
         self.layout.build(&self)?;
 

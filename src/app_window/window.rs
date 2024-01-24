@@ -48,7 +48,7 @@ impl AppWindow {
         self.conn_config.accept_invalid_tls = true;
 
         self.set_status_bar_dbconn_label("none");
-        self.open_connect_dialog(nwg::EventData::NoData);
+        //self.open_connect_dialog(nwg::EventData::NoData);
     }
 
     pub(super) fn close(&mut self, _: nwg::EventData) {

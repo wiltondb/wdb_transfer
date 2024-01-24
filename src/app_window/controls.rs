@@ -35,6 +35,27 @@ pub(super) struct AppWindowControls {
     pub(super) help_about_menu_item: nwg::MenuItem,
     pub(super) help_website_menu_item: nwg::MenuItem,
 
+    pub(super) tabs_container: nwg::TabsContainer,
+    pub(super) export_tab: nwg::Tab,
+    pub(super) import_tab: nwg::Tab,
+
+    pub(super) export_tables_mark_all_button: nwg::Button,
+    pub(super) export_tables_clear_button: nwg::Button,
+    pub(super) export_tables_filter_input: nwg::TextInput,
+    pub(super) export_tables_filter_button: nwg::Button,
+    pub(super) export_tables_view: nwg::ListView,
+    pub(super) export_dbnames_label: nwg::Label,
+    pub(super) export_dbnames_combo: nwg::ComboBox<String>,
+    pub(super) export_dbnames_reload_button: nwg::Button,
+    pub(super) export_dest_dir_label: nwg::Label,
+    pub(super) export_dest_dir_input: nwg::TextInput,
+    pub(super) export_dest_dir_button: nwg::Button,
+    pub(super) export_dest_dir_chooser: nwg::FileDialog,
+    pub(super) export_filename_label: nwg::Label,
+    pub(super) export_filename_input: nwg::TextInput,
+    pub(super) export_run_button: nwg::Button,
+    pub(super) export_close_button: nwg::Button,
+
     pub(super) status_bar: nwg::StatusBar,
 
     pub(super) about_notice: ui::SyncNotice,
@@ -64,7 +85,7 @@ impl ui::Controls for AppWindowControls {
             .build(&mut self.icon)?;
 
         nwg::Window::builder()
-            .size((520, 320))
+            .size((520, 480))
             .icon(Some(&self.icon))
             .center(true)
             .title("WiltonDB Data Transfer Tool")
@@ -98,6 +119,137 @@ impl ui::Controls for AppWindowControls {
             .text("Website")
             .build(&mut self.help_website_menu_item)?;
 
+        // tabs
+
+        nwg::TabsContainer::builder()
+            .font(Some(&self.font_normal))
+            .parent(&self.window)
+            .build(&mut self.tabs_container)?;
+        nwg::Tab::builder()
+            .text("Export")
+            .parent(&self.tabs_container)
+            .build(&mut self.export_tab)?;
+        nwg::Tab::builder()
+            .text("Import")
+            .parent(&self.tabs_container)
+            .build(&mut self.import_tab)?;
+
+        // export top form
+
+        nwg::Button::builder()
+            .parent(&self.export_tab)
+            .text("Mark all")
+            .font(Some(&self.font_normal))
+            .build(&mut self.export_tables_mark_all_button)?;
+        nwg::Button::builder()
+            .parent(&self.export_tab)
+            .text("Clear")
+            .font(Some(&self.font_normal))
+            .build(&mut self.export_tables_clear_button)?;
+        nwg::TextInput::builder()
+            .parent(&self.export_tab)
+            .font(Some(&self.font_normal))
+            .build(&mut self.export_tables_filter_input)?;
+        nwg::Button::builder()
+            .parent(&self.export_tab)
+            .text("Filter")
+            .font(Some(&self.font_normal))
+            .build(&mut self.export_tables_filter_button)?;
+
+        // export tables view
+
+        nwg::ListView::builder()
+            .parent(&self.export_tab)
+            .item_count(10)
+            .list_style(nwg::ListViewStyle::Detailed)
+            .focus(true)
+            .ex_flags(nwg::ListViewExFlags::GRID | nwg::ListViewExFlags::FULL_ROW_SELECT)
+            .build(&mut self.export_tables_view)?;
+        self.export_tables_view.set_headers_enabled(true);
+        self.export_tables_view.insert_column(nwg::InsertListViewColumn{
+            index: Some(0),
+            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            width: Some(20),
+            text: Some("".to_string())
+        });
+        self.export_tables_view.insert_column(nwg::InsertListViewColumn{
+            index: Some(1),
+            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            width: Some(300),
+            text: Some("Table name".to_string())
+        });
+        self.export_tables_view.set_column_sort_arrow(1, Some(nwg::ListViewColumnSortArrow::Down));
+        self.export_tables_view.insert_column(nwg::InsertListViewColumn{
+            index: Some(2),
+            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            width: Some(100),
+            text: Some("Rows count".to_string())
+        });
+
+        // export bottom form
+
+        nwg::Label::builder()
+            .parent(&self.export_tab)
+            .text("Database:")
+            .font(Some(&self.font_normal))
+            .background_color(Some(COLOR_WHITE))
+            .h_align(nwg::HTextAlign::Left)
+            .build(&mut self.export_dbnames_label)?;
+        nwg::ComboBox::builder()
+            .parent(&self.export_tab)
+            .font(Some(&self.font_normal))
+            .build(&mut self.export_dbnames_combo)?;
+        nwg::Button::builder()
+            .parent(&self.export_tab)
+            .text("Reload")
+            .font(Some(&self.font_normal))
+            .build(&mut self.export_dbnames_reload_button)?;
+        nwg::Label::builder()
+            .parent(&self.export_tab)
+            .text("Destination dir.:")
+            .font(Some(&self.font_normal))
+            .background_color(Some(COLOR_WHITE))
+            .h_align(nwg::HTextAlign::Left)
+            .build(&mut self.export_dest_dir_label)?;
+        nwg::TextInput::builder()
+            .parent(&self.export_tab)
+            .font(Some(&self.font_normal))
+            .text(&std::env::var("USERPROFILE").unwrap_or(String::new()))
+            .build(&mut self.export_dest_dir_input)?;
+        nwg::Button::builder()
+            .parent(&self.export_tab)
+            .text("Choose")
+            .font(Some(&self.font_normal))
+            .build(&mut self.export_dest_dir_button)?;
+        nwg::FileDialog::builder()
+            .title("Choose destination directory")
+            .action(nwg::FileDialogAction::OpenDirectory)
+            .build(&mut self.export_dest_dir_chooser)?;
+        nwg::Label::builder()
+            .parent(&self.export_tab)
+            .text("Export file name:")
+            .font(Some(&self.font_normal))
+            .background_color(Some(COLOR_WHITE))
+            .h_align(nwg::HTextAlign::Left)
+            .build(&mut self.export_filename_label)?;
+        nwg::TextInput::builder()
+            .parent(&self.export_tab)
+            .font(Some(&self.font_normal))
+            .build(&mut self.export_filename_input)?;
+
+        // export buttons
+
+        nwg::Button::builder()
+            .parent(&self.export_tab)
+            .text("Run export")
+            .font(Some(&self.font_normal))
+            .build(&mut self.export_run_button)?;
+        nwg::Button::builder()
+            .parent(&self.export_tab)
+            .text("Close")
+            .font(Some(&self.font_normal))
+            .build(&mut self.export_close_button)?;
+
         // other
 
         nwg::StatusBar::builder()
@@ -118,7 +270,18 @@ impl ui::Controls for AppWindowControls {
     }
 
     fn update_tab_order(&self) {
-        //ui::tab_order_builder()
-        //    .build();
+        ui::tab_order_builder()
+            .control(&self.export_tables_mark_all_button)
+            .control(&self.export_tables_clear_button)
+            .control(&self.export_tables_filter_input)
+            .control(&self.export_tables_filter_button)
+            .control(&self.export_dbnames_combo)
+            .control(&self.export_dbnames_reload_button)
+            .control(&self.export_dest_dir_input)
+            .control(&self.export_dest_dir_button)
+            .control(&self.export_filename_input)
+            .control(&self.export_run_button)
+            .control(&self.export_close_button)
+            .build();
     }
 }

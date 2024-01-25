@@ -34,6 +34,12 @@ use common::TransferError;
 use connect_dialog::ConnectDialog;
 use connect_dialog::ConnectDialogArgs;
 use connect_dialog::ConnectDialogResult;
+use load_dbnames_dialog::LoadDbnamesDialog;
+use load_dbnames_dialog::LoadDbnamesDialogArgs;
+use load_dbnames_dialog::LoadDbnamesDialogResult;
+use load_tables_dialog::LoadTablesDialog;
+use load_tables_dialog::LoadTablesDialogArgs;
+use load_tables_dialog::LoadTablesDialogResult;
 
 pub(self) use controls::AppWindowControls;
 pub(self) use events::AppWindowEvents;

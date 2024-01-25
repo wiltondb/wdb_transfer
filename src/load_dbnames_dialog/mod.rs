@@ -23,7 +23,11 @@ mod nui;
 mod result;
 
 use std::thread;
+use std::time::Duration;
+use std::time::Instant;
 
+use clipboard_win::formats;
+use clipboard_win::set_clipboard;
 use nwg::NativeUi;
 
 use crate::*;
@@ -31,20 +35,14 @@ use nwg_ui as ui;
 use ui::Controls;
 use ui::Events;
 use ui::Layout;
-use ui::PopupArgs;
 use ui::PopupDialog;
-
 use common::TdsConnConfig;
-use connect_check_dialog::ConnectCheckDialog;
-use connect_check_dialog::ConnectCheckDialogArgs;
-use connect_check_dialog::ConnectCheckDialogResult;
-use load_dbnames_dialog::LoadDbnamesDialog;
-use load_dbnames_dialog::LoadDbnamesDialogArgs;
-use load_dbnames_dialog::LoadDbnamesDialogResult;
+use common::TransferError;
 
-pub use args::ConnectDialogArgs;
-pub(self) use controls::ConnectDialogControls;
-pub use dialog::ConnectDialog;
-use events::ConnectDialogEvents;
-use layout::ConnectDialogLayout;
-pub use result::ConnectDialogResult;
+pub use args::LoadDbnamesDialogArgs;
+pub(self) use controls::LoadDbnamesDialogControls;
+pub use dialog::LoadDbnamesDialog;
+use events::LoadDbnamesDialogEvents;
+use layout::LoadDbnamesDialogLayout;
+pub use result::LoadDbnamesDialogResult;
+use result::LoadDbnamesResult;

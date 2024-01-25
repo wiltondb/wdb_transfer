@@ -38,6 +38,7 @@ pub(super) struct ConnectDialogControls {
     pub(super) accept_invalid_tls_checkbox: nwg::CheckBox,
 
     pub(super) test_button: nwg::Button,
+    pub(super) load_button: nwg::Button,
     pub(super) cancel_button: nwg::Button,
 
     pub(super) check_notice: ui::SyncNotice,
@@ -130,7 +131,11 @@ impl ui::Controls for ConnectDialogControls {
             .font(Some(&self.font_normal))
             .parent(&self.window)
             .build(&mut self.test_button)?;
-
+        nwg::Button::builder()
+            .text("Load DB names")
+            .font(Some(&self.font_normal))
+            .parent(&self.window)
+            .build(&mut self.load_button)?;
         nwg::Button::builder()
             .text("Cancel")
             .font(Some(&self.font_normal))
@@ -158,6 +163,7 @@ impl ui::Controls for ConnectDialogControls {
             .control(&self.database_input)
             .control(&self.accept_invalid_tls_checkbox)
             .control(&self.test_button)
+            .control(&self.load_button)
             .control(&self.cancel_button)
             .build();
     }

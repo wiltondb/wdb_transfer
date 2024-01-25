@@ -34,6 +34,12 @@ impl TransferError {
             message
         }
     }
+
+    pub fn from_str(message: &str) -> Self {
+        Self {
+            message: message.to_string()
+        }
+    }
 }
 
 impl fmt::Display for TransferError {

@@ -17,54 +17,37 @@
 use super::*;
 
 #[derive(Default)]
-pub(super) struct ConnectDialogEvents {
-    pub(super) events: Vec<ui::Event<ConnectDialog>>
+pub(super) struct LoadDbnamesDialogEvents {
+    pub(super) events: Vec<ui::Event<LoadDbnamesDialog>>
 }
 
-impl ui::Events<ConnectDialogControls> for ConnectDialogEvents {
-    fn build(&mut self, c: &ConnectDialogControls) -> Result<(), nwg::NwgError> {
+impl ui::Events<LoadDbnamesDialogControls> for LoadDbnamesDialogEvents {
+    fn build(&mut self, c: &LoadDbnamesDialogControls) -> Result<(), nwg::NwgError> {
         ui::event_builder()
             .control(&c.window)
             .event(nwg::Event::OnWindowClose)
-            .handler(ConnectDialog::close)
+            .handler(LoadDbnamesDialog::close)
             .build(&mut self.events)?;
         ui::event_builder()
             .control(&c.window)
             .event(nwg::Event::OnResizeEnd)
-            .handler(ConnectDialog::on_resize)
+            .handler(LoadDbnamesDialog::on_resize)
             .build(&mut self.events)?;
 
         ui::event_builder()
-            .control(&c.port_input)
-            .event(nwg::Event::OnTextInput)
-            .handler(ConnectDialog::on_port_input_changed)
-            .build(&mut self.events)?;
-
-        ui::event_builder()
-            .control(&c.test_button)
+            .control(&c.copy_clipboard_button)
             .event(nwg::Event::OnButtonClick)
-            .handler(ConnectDialog::open_check_dialog)
+            .handler(LoadDbnamesDialog::copy_to_clipboard)
             .build(&mut self.events)?;
         ui::event_builder()
-            .control(&c.load_button)
+            .control(&c.close_button)
             .event(nwg::Event::OnButtonClick)
-            .handler(ConnectDialog::open_load_dialog)
-            .build(&mut self.events)?;
-        ui::event_builder()
-            .control(&c.cancel_button)
-            .event(nwg::Event::OnButtonClick)
-            .handler(ConnectDialog::close)
-            .build(&mut self.events)?;
-
-        ui::event_builder()
-            .control(&c.check_notice.notice)
-            .event(nwg::Event::OnNotice)
-            .handler(ConnectDialog::await_check_dialog)
+            .handler(LoadDbnamesDialog::close)
             .build(&mut self.events)?;
         ui::event_builder()
             .control(&c.load_notice.notice)
             .event(nwg::Event::OnNotice)
-            .handler(ConnectDialog::await_load_dialog)
+            .handler(LoadDbnamesDialog::on_load_complete)
             .build(&mut self.events)?;
 
         Ok(())

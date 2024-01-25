@@ -57,6 +57,22 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
             .build(&mut self.events)?;
 
         ui::event_builder()
+            .control(&c.export_dbnames_combo)
+            .event(nwg::Event::OnComboxBoxSelection)
+            .handler(AppWindow::on_dbname_changed)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.export_dbnames_reload_button)
+            .event(nwg::Event::OnButtonClick)
+            .handler(AppWindow::open_load_dbnames_dialog)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.export_close_button)
+            .event(nwg::Event::OnButtonClick)
+            .handler(AppWindow::close)
+            .build(&mut self.events)?;
+
+        ui::event_builder()
             .control(&c.about_notice.notice)
             .event(nwg::Event::OnNotice)
             .handler(AppWindow::await_about_dialog)
@@ -65,6 +81,16 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
             .control(&c.connect_notice.notice)
             .event(nwg::Event::OnNotice)
             .handler(AppWindow::await_connect_dialog)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.load_dbnames_notice.notice)
+            .event(nwg::Event::OnNotice)
+            .handler(AppWindow::await_load_dbnames_dialog)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.load_tables_notice.notice)
+            .event(nwg::Event::OnNotice)
+            .handler(AppWindow::await_load_tables_dialog)
             .build(&mut self.events)?;
 
         Ok(())

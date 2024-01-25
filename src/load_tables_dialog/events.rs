@@ -17,54 +17,37 @@
 use super::*;
 
 #[derive(Default)]
-pub(super) struct ConnectDialogEvents {
-    pub(super) events: Vec<ui::Event<ConnectDialog>>
+pub(super) struct LoadTablesDialogEvents {
+    pub(super) events: Vec<ui::Event<LoadTablesDialog>>
 }
 
-impl ui::Events<ConnectDialogControls> for ConnectDialogEvents {
-    fn build(&mut self, c: &ConnectDialogControls) -> Result<(), nwg::NwgError> {
+impl ui::Events<LoadTablesDialogControls> for LoadTablesDialogEvents {
+    fn build(&mut self, c: &LoadTablesDialogControls) -> Result<(), nwg::NwgError> {
         ui::event_builder()
             .control(&c.window)
             .event(nwg::Event::OnWindowClose)
-            .handler(ConnectDialog::close)
+            .handler(LoadTablesDialog::close)
             .build(&mut self.events)?;
         ui::event_builder()
             .control(&c.window)
             .event(nwg::Event::OnResizeEnd)
-            .handler(ConnectDialog::on_resize)
+            .handler(LoadTablesDialog::on_resize)
             .build(&mut self.events)?;
 
         ui::event_builder()
-            .control(&c.port_input)
-            .event(nwg::Event::OnTextInput)
-            .handler(ConnectDialog::on_port_input_changed)
-            .build(&mut self.events)?;
-
-        ui::event_builder()
-            .control(&c.test_button)
+            .control(&c.copy_clipboard_button)
             .event(nwg::Event::OnButtonClick)
-            .handler(ConnectDialog::open_check_dialog)
+            .handler(LoadTablesDialog::copy_to_clipboard)
             .build(&mut self.events)?;
         ui::event_builder()
-            .control(&c.load_button)
+            .control(&c.close_button)
             .event(nwg::Event::OnButtonClick)
-            .handler(ConnectDialog::open_load_dialog)
-            .build(&mut self.events)?;
-        ui::event_builder()
-            .control(&c.cancel_button)
-            .event(nwg::Event::OnButtonClick)
-            .handler(ConnectDialog::close)
-            .build(&mut self.events)?;
-
-        ui::event_builder()
-            .control(&c.check_notice.notice)
-            .event(nwg::Event::OnNotice)
-            .handler(ConnectDialog::await_check_dialog)
+            .handler(LoadTablesDialog::close)
             .build(&mut self.events)?;
         ui::event_builder()
             .control(&c.load_notice.notice)
             .event(nwg::Event::OnNotice)
-            .handler(ConnectDialog::await_load_dialog)
+            .handler(LoadTablesDialog::on_load_complete)
             .build(&mut self.events)?;
 
         Ok(())

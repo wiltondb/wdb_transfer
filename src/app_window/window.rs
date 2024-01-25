@@ -30,6 +30,8 @@ pub struct AppWindow {
 
     about_dialog_join_handle: ui::PopupJoinHandle<()>,
     connect_dialog_join_handle: ui::PopupJoinHandle<ConnectDialogResult>,
+    load_dbnames_dialog_join_handle: ui::PopupJoinHandle<LoadDbnamesDialogResult>,
+    load_tables_dialog_join_handle: ui::PopupJoinHandle<LoadTablesDialogResult>,
 }
 
 impl AppWindow {
@@ -48,7 +50,7 @@ impl AppWindow {
         self.conn_config.accept_invalid_tls = true;
 
         self.set_status_bar_dbconn_label("none");
-        //self.open_connect_dialog(nwg::EventData::NoData);
+        self.open_connect_dialog(nwg::EventData::NoData);
     }
 
     pub(super) fn close(&mut self, _: nwg::EventData) {
@@ -79,11 +81,47 @@ impl AppWindow {
         self.c.connect_notice.receive();
         let res = self.connect_dialog_join_handle.join();
         if !res.cancelled {
-            //self.set_dbnames(&res.dbnames, &res.bbf_db);
+            self.set_dbnames(&res.dbnames);
             self.conn_config = res.conn_config;
             let sbar_label = format!(
                 "{}:{}", &self.conn_config.hostname, &self.conn_config.port);
             self.set_status_bar_dbconn_label(&sbar_label);
+        }
+    }
+
+    pub(super) fn open_load_dbnames_dialog(&mut self, _: nwg::EventData) {
+        self.c.window.set_enabled(false);
+        let cc = self.conn_config.clone();
+        let args = LoadDbnamesDialogArgs::new(&self.c.load_dbnames_notice, cc);
+        self.load_dbnames_dialog_join_handle = LoadDbnamesDialog::popup(args);
+    }
+
+    pub(super) fn await_load_dbnames_dialog(&mut self, _: nwg::EventData) {
+        self.c.window.set_enabled(true);
+        self.c.load_dbnames_notice.receive();
+        let res = self.load_dbnames_dialog_join_handle.join();
+        if res.success {
+            self.set_dbnames(&res.dbnames);
+        }
+    }
+
+    pub(super) fn open_load_tables_dialog(&mut self, _: nwg::EventData) {
+        if let Some(dbname) = &self.c.export_dbnames_combo.selection_string() {
+            self.c.window.set_enabled(false);
+            let cc = self.conn_config.clone();
+            let args = LoadTablesDialogArgs::new(&self.c.load_tables_notice, cc, dbname);
+            self.load_tables_dialog_join_handle = LoadTablesDialog::popup(args);
+        }
+    }
+
+    pub(super) fn await_load_tables_dialog(&mut self, _: nwg::EventData) {
+        self.c.window.set_enabled(true);
+        self.c.load_tables_notice.receive();
+        let res = self.load_tables_dialog_join_handle.join();
+        if res.success {
+            for tb in res.tables.iter() {
+                println!("{}.{} : {}", tb.schema, tb.table, tb.row_count);
+            }
         }
     }
 
@@ -99,11 +137,39 @@ impl AppWindow {
             .status();
     }
 
+    pub(super) fn on_dbname_changed(&mut self, _: nwg::EventData) {
+        if let Some(name) = &self.c.export_dbnames_combo.selection_string() {
+            self.open_load_tables_dialog(nwg::EventData::NoData);
+        }
+    }
+
     pub(super) fn on_resize(&mut self, _: nwg::EventData) {
         self.c.update_tab_order();
     }
 
     fn set_status_bar_dbconn_label(&self, text: &str) {
         self.c.status_bar.set_text(0, &format!("  DB connection: {}", text));
+    }
+
+    fn set_dbnames(&mut self, dbnames_all: &Vec<String>) {
+        use std::cmp::Ordering;
+        let mut dbnames: Vec<String> = dbnames_all.iter().filter(|name| {
+            !vec!("msdb", "tempdb").contains(&name.as_str())
+        }).map(|name| name.clone()).collect();
+        dbnames.sort_by(|a, b| {
+            if "master" == a {
+                Ordering::Less
+            } else if "master" == b {
+                Ordering::Greater
+            } else {
+                a.cmp(b)
+            }
+        });
+        let count = dbnames.len();
+        self.c.export_dbnames_combo.set_collection(dbnames);
+        if count > 0 {
+            self.c.export_dbnames_combo.set_selection(Some(0));
+            self.on_dbname_changed(nwg::EventData::NoData);
+        }
     }
 }

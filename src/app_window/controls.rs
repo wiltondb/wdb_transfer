@@ -60,6 +60,8 @@ pub(super) struct AppWindowControls {
 
     pub(super) about_notice: ui::SyncNotice,
     pub(super) connect_notice: ui::SyncNotice,
+    pub(super) load_dbnames_notice: ui::SyncNotice,
+    pub(super) load_tables_notice: ui::SyncNotice,
 }
 
 impl ui::Controls for AppWindowControls {
@@ -263,6 +265,12 @@ impl ui::Controls for AppWindowControls {
         ui::notice_builder()
             .parent(&self.window)
             .build(&mut self.connect_notice)?;
+        ui::notice_builder()
+            .parent(&self.window)
+            .build(&mut self.load_dbnames_notice)?;
+        ui::notice_builder()
+            .parent(&self.window)
+            .build(&mut self.load_tables_notice)?;
 
         self.layout.build(&self)?;
 

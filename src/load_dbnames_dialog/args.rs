@@ -14,24 +14,29 @@
  * limitations under the License.
  */
 
-#![windows_subsystem = "windows"]
+use super::*;
 
-mod common;
-mod about_dialog;
-mod app_window;
-mod connect_check_dialog;
-mod connect_dialog;
-mod load_dbnames_dialog;
-mod load_tables_dialog;
+#[derive(Default)]
+pub struct LoadDbnamesDialogArgs {
+    pub(super) notice_sender:  ui::SyncNoticeSender,
+    pub(super) conn_config: TdsConnConfig,
+}
 
-use nwg::NativeUi;
+impl LoadDbnamesDialogArgs {
+    pub fn new(notice: &ui::SyncNotice, conn_config: TdsConnConfig) -> Self {
+        Self {
+            notice_sender: notice.sender(),
+            conn_config,
+        }
+    }
 
-fn main() {
-    nwg::init().expect("Failed to init Native Windows GUI");
-    nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
+    pub fn send_notice(&self) {
+        self.notice_sender.send()
+    }
+}
 
-    let data = app_window::AppWindow::new();
-    let _app = app_window::AppWindow::build_ui(data).expect("Failed to build UI");
-
-    nwg::dispatch_thread_events();
+impl ui::PopupArgs for LoadDbnamesDialogArgs {
+    fn notify_parent(&self) {
+        self.notice_sender.send()
+    }
 }

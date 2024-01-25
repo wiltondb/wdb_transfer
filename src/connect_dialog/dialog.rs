@@ -23,6 +23,7 @@ pub struct ConnectDialog {
     args: ConnectDialogArgs,
     result: ConnectDialogResult,
     check_join_handle: ui::PopupJoinHandle<ConnectCheckDialogResult>,
+    load_join_handle: ui::PopupJoinHandle<LoadDbnamesDialogResult>,
 }
 
 impl ConnectDialog {
@@ -39,6 +40,27 @@ impl ConnectDialog {
         let _ = self.check_join_handle.join();
         ui::shake_window(&self.c.window);
         self.c.update_tab_order();
+    }
+
+    pub(super) fn open_load_dialog(&mut self, _: nwg::EventData) {
+        self.c.window.set_enabled(false);
+        let config = self.config_from_input();
+        let args = LoadDbnamesDialogArgs::new(&self.c.load_notice, config);
+        self.load_join_handle = LoadDbnamesDialog::popup(args);
+    }
+
+    pub(super) fn await_load_dialog(&mut self, _: nwg::EventData) {
+        self.c.window.set_enabled(true);
+        self.c.load_notice.receive();
+        let res = self.load_join_handle.join();
+        if !res.success {
+            ui::shake_window(&self.c.window);
+            self.c.update_tab_order();
+        } else {
+            let config = self.config_from_input();
+            self.result = ConnectDialogResult::new(config, res.dbnames);
+            self.close(nwg::EventData::NoData);
+        }
     }
 
     pub(super) fn on_port_input_changed(&mut self, _: nwg::EventData) {

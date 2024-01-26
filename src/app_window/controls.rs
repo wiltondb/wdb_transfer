@@ -145,16 +145,17 @@ impl ui::Controls for AppWindowControls {
             .build(&mut self.export_tables_mark_all_button)?;
         nwg::Button::builder()
             .parent(&self.export_tab)
-            .text("Clear")
+            .text("Clear all")
             .font(Some(&self.font_normal))
             .build(&mut self.export_tables_clear_button)?;
         nwg::TextInput::builder()
             .parent(&self.export_tab)
+            .placeholder_text(Some("Table name with '*' and '?' wildcards"))
             .font(Some(&self.font_normal))
             .build(&mut self.export_tables_filter_input)?;
         nwg::Button::builder()
             .parent(&self.export_tab)
-            .text("Filter")
+            .text("Search")
             .font(Some(&self.font_normal))
             .build(&mut self.export_tables_filter_button)?;
 
@@ -171,13 +172,14 @@ impl ui::Controls for AppWindowControls {
         self.export_tables_view.insert_column(nwg::InsertListViewColumn{
             index: Some(0),
             fmt: Some(nwg::ListViewColumnFlags::LEFT),
-            width: Some(30),
-            text: Some("".to_string())
+            width: Some(50),
+            text: Some("Export".to_string())
         });
+        self.export_tables_view.set_column_sort_arrow(0, Some(nwg::ListViewColumnSortArrow::Down));
         self.export_tables_view.insert_column(nwg::InsertListViewColumn{
             index: Some(1),
             fmt: Some(nwg::ListViewColumnFlags::LEFT),
-            width: Some(100),
+            width: Some(80),
             text: Some("Schema".to_string())
         });
         self.export_tables_view.set_column_sort_arrow(1, Some(nwg::ListViewColumnSortArrow::Down));
@@ -251,7 +253,7 @@ impl ui::Controls for AppWindowControls {
 
         nwg::Button::builder()
             .parent(&self.export_tab)
-            .text("Run export")
+            .text("Run data export")
             .font(Some(&self.font_normal))
             .build(&mut self.export_run_button)?;
         nwg::Button::builder()

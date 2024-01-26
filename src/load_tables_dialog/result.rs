@@ -18,7 +18,8 @@
 pub struct TableWithRowsCount {
     pub schema: String,
     pub table: String,
-    pub row_count: i32
+    pub row_count: i32,
+    pub export: bool,
 }
 
 impl TableWithRowsCount {
@@ -26,8 +27,13 @@ impl TableWithRowsCount {
         Self {
             schema: schema.to_string(),
             table: table.to_string(),
-            row_count
+            row_count,
+            export: false
         }
+    }
+
+    pub fn set_export(&mut self, export: bool) {
+        self.export = export;
     }
 }
 

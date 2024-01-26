@@ -57,9 +57,30 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
             .build(&mut self.events)?;
 
         ui::event_builder()
+            .control(&c.export_tables_mark_all_button)
+            .event(nwg::Event::OnButtonClick)
+            .handler(AppWindow::on_mark_all_button)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.export_tables_clear_button)
+            .event(nwg::Event::OnButtonClick)
+            .handler(AppWindow::on_clear_button)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.export_tables_filter_button)
+            .event(nwg::Event::OnButtonClick)
+            .handler(AppWindow::on_filter_button)
+            .build(&mut self.events)?;
+
+        ui::event_builder()
             .control(&c.export_tables_view)
             .event(nwg::Event::OnListViewColumnClick)
             .handler(AppWindow::on_tables_view_sort)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.export_tables_view)
+            .event(nwg::Event::OnListViewClick)
+            .handler(AppWindow::on_table_view_click)
             .build(&mut self.events)?;
 
         ui::event_builder()

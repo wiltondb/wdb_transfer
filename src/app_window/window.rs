@@ -43,6 +43,7 @@ impl AppWindow {
     }
 
     pub(super) fn init(&mut self) {
+        use chrono::{DateTime, Local};
         self.conn_config.hostname = String::from("localhost");
         self.conn_config.port = 1433;
         self.conn_config.username = String::from("wilton");
@@ -52,6 +53,8 @@ impl AppWindow {
         self.conn_config.accept_invalid_tls = true;
 
         self.set_status_bar_dbconn_label("none");
+        let date = Local::now().format("%Y%m%d");
+        self.c.export_filename_input.set_text(&format!("bcp_export_{}.zip", date));
         self.open_connect_dialog(nwg::EventData::NoData);
     }
 
@@ -168,6 +171,25 @@ impl AppWindow {
         self.reload_tables_view();
     }
 
+    pub(super) fn on_table_view_click(&mut self, ed: nwg::EventData) {
+        if let nwg::EventData::OnListViewItemIndex
+        { row_index: row_idx, .. } = ed {
+            self.flip_export_flag(row_idx);
+        };
+    }
+
+    pub(super) fn on_mark_all_button(&mut self, _: nwg::EventData) {
+        self.set_all_export_flags(true);
+    }
+
+    pub(super) fn on_clear_button(&mut self, _: nwg::EventData) {
+        self.set_all_export_flags(false);
+    }
+
+    pub(super) fn on_filter_button(&mut self, _: nwg::EventData) {
+        self.reload_tables_view();
+    }
+
     pub(super) fn on_resize(&mut self, _: nwg::EventData) {
         self.c.update_tab_order();
     }
@@ -193,14 +215,22 @@ impl AppWindow {
         let count = dbnames.len();
         self.c.export_dbnames_combo.set_collection(dbnames);
         if count > 0 {
-            self.c.export_dbnames_combo.set_selection(Some(0));
+            //self.c.export_dbnames_combo.set_selection(Some(0));
+            // todo: removeme
+            self.c.export_dbnames_combo.set_selection(Some(count - 1));
             self.on_dbname_changed(nwg::EventData::NoData);
         }
     }
 
-    fn table_matches_filters(&self, _table: &TableWithRowsCount) -> bool {
-        // todo
-        true
+    fn table_matches_filters(&self, rec: &TableWithRowsCount) -> bool {
+        let filter = self.c.export_tables_filter_input.text();
+        if 0 == filter.len() {
+            return true;
+        }
+        if rec.table.starts_with(&filter) {
+            return true;
+        }
+        wildmatch::WildMatch::new(&filter).matches(&rec.table)
     }
 
     fn reload_tables_view(&self) {
@@ -215,6 +245,12 @@ impl AppWindow {
         let mut idx = 0 as i32;
         for rec in &self.tables {
             if self.table_matches_filters(rec) {
+                tv.insert_item(nwg::InsertListViewItem {
+                    index: Some(idx as i32),
+                    column_index: 0,
+                    text: Some(if rec.export { "YES".to_string() } else { "No".to_string() }),
+                    image: None
+                });
                 tv.insert_item(nwg::InsertListViewItem {
                     index: Some(idx as i32),
                     column_index: 1,
@@ -240,11 +276,17 @@ impl AppWindow {
     }
 
     fn sort_tables(&mut self, col_idx: usize, desc: bool) {
-        if col_idx < 1 || col_idx > 3 {
+        if col_idx > 3 {
             return;
         }
         self.tables.sort_by(|a, b| {
-            if 1 == col_idx {
+            if 0 == col_idx {
+                if desc {
+                    b.export.cmp(&a.export)
+                } else {
+                    a.export.cmp(&b.export)
+                }
+            } else if 1 == col_idx {
                 if desc {
                     b.schema.to_lowercase().cmp(&a.schema.to_lowercase())
                 } else {
@@ -266,5 +308,50 @@ impl AppWindow {
                 std::cmp::Ordering::Equal
             }
         });
+    }
+
+    fn set_all_export_flags(&mut self, export: bool) {
+        let tv = &self.c.export_tables_view;
+        tv.set_redraw(false);
+        for rec in self.tables.iter_mut() {
+            rec.export = export
+        };
+        for row_idx in 0..tv.len() {
+            self.c.export_tables_view.update_item(row_idx, nwg::InsertListViewItem {
+                index: Some(row_idx as i32),
+                column_index: 0,
+                text: Some(if export { "YES".to_string() } else { "No".to_string() }),
+                image: None
+            });
+        }
+        tv.set_redraw(true);
+    }
+
+    fn flip_export_flag(&mut self, row_idx: usize) {
+        let export = match self.c.export_tables_view.item(row_idx, 0, 1<<16) {
+            Some(mut item) => "no" == item.text.to_lowercase(),
+            None => return
+        };
+        let schema = match self.c.export_tables_view.item(row_idx, 1, 1<<16) {
+            Some(item) => item.text,
+            None => return
+        };
+        let table = match self.c.export_tables_view.item(row_idx, 2, 1<<16) {
+            Some(item) => item.text,
+            None => return
+        };
+        for rec in self.tables.iter_mut() {
+            if schema == rec.schema && table == rec.table {
+                rec.export = export;
+                break;
+            }
+        };
+        self.c.export_tables_view.update_item(row_idx, nwg::InsertListViewItem {
+            index: Some(row_idx as i32),
+            column_index: 0,
+            text: Some(if export { "YES".to_string() } else { "No".to_string() }),
+            image: None
+        });
+
     }
 }

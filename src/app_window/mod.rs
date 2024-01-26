@@ -40,6 +40,7 @@ use load_dbnames_dialog::LoadDbnamesDialogResult;
 use load_tables_dialog::LoadTablesDialog;
 use load_tables_dialog::LoadTablesDialogArgs;
 use load_tables_dialog::LoadTablesDialogResult;
+use load_tables_dialog::TableWithRowsCount;
 
 pub(self) use controls::AppWindowControls;
 pub(self) use events::AppWindowEvents;

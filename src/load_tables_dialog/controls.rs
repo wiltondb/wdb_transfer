@@ -31,7 +31,8 @@ pub(super) struct LoadTablesDialogControls {
     pub(super) copy_clipboard_button: nwg::Button,
     pub(super) close_button: nwg::Button,
 
-    pub(super) load_notice: ui::SyncNotice,
+    pub(super) progress_notice: ui::SyncNoticeValue<String>,
+    pub(super) complete_notice: ui::SyncNotice,
 }
 
 impl ui::Controls for LoadTablesDialogControls {
@@ -49,7 +50,7 @@ impl ui::Controls for LoadTablesDialogControls {
             .build(&mut self.icon)?;
 
         nwg::Window::builder()
-            .size((320, 200))
+            .size((320, 280))
             .icon(Some(&self.icon))
             .center(true)
             .title("Load tables")
@@ -72,7 +73,7 @@ impl ui::Controls for LoadTablesDialogControls {
             .build(&mut self.label)?;
 
         nwg::TextBox::builder()
-            .text("Details pending ...")
+            .text("Connecting ...\r\n")
             .font(Some(&self.font_normal))
             .readonly(true)
             .parent(&self.window)
@@ -94,7 +95,10 @@ impl ui::Controls for LoadTablesDialogControls {
 
         ui::notice_builder()
             .parent(&self.window)
-            .build(&mut self.load_notice)?;
+            .build(&mut self.progress_notice)?;
+        ui::notice_builder()
+            .parent(&self.window)
+            .build(&mut self.complete_notice)?;
 
         self.layout.build(&self)?;
 

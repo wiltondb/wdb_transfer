@@ -57,6 +57,12 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
             .build(&mut self.events)?;
 
         ui::event_builder()
+            .control(&c.export_tables_view)
+            .event(nwg::Event::OnListViewColumnClick)
+            .handler(AppWindow::on_tables_view_sort)
+            .build(&mut self.events)?;
+
+        ui::event_builder()
             .control(&c.export_dbnames_combo)
             .event(nwg::Event::OnComboxBoxSelection)
             .handler(AppWindow::on_dbname_changed)

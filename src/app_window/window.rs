@@ -28,6 +28,8 @@ pub struct AppWindow {
 
     conn_config: TdsConnConfig,
 
+    tables: Vec<TableWithRowsCount>,
+
     about_dialog_join_handle: ui::PopupJoinHandle<()>,
     connect_dialog_join_handle: ui::PopupJoinHandle<ConnectDialogResult>,
     load_dbnames_dialog_join_handle: ui::PopupJoinHandle<LoadDbnamesDialogResult>,
@@ -117,12 +119,12 @@ impl AppWindow {
     pub(super) fn await_load_tables_dialog(&mut self, _: nwg::EventData) {
         self.c.window.set_enabled(true);
         self.c.load_tables_notice.receive();
-        let res = self.load_tables_dialog_join_handle.join();
+        let mut res = self.load_tables_dialog_join_handle.join();
+        self.tables = Vec::new();
         if res.success {
-            for tb in res.tables.iter() {
-                println!("{}.{} : {}", tb.schema, tb.table, tb.row_count);
-            }
+            self.tables = res.tables;
         }
+        self.reload_tables_view();
     }
 
     pub(super) fn open_website(&mut self, _: nwg::EventData) {
@@ -141,6 +143,29 @@ impl AppWindow {
         if let Some(name) = &self.c.export_dbnames_combo.selection_string() {
             self.open_load_tables_dialog(nwg::EventData::NoData);
         }
+    }
+
+    pub(super) fn on_tables_view_sort(&mut self, ed: nwg::EventData) {
+        let col_idx = if let nwg::EventData::OnListViewItemIndex
+        { column_index: col_idx, .. } = ed {
+            col_idx
+        } else {
+            return;
+        };
+        let old_arrow = self.c.export_tables_view
+            .column_sort_arrow(col_idx)
+            .expect("Sort not initialized");
+        let arrow = match old_arrow {
+            nwg::ListViewColumnSortArrow::Up => nwg::ListViewColumnSortArrow::Down,
+            nwg::ListViewColumnSortArrow::Down => nwg::ListViewColumnSortArrow::Up
+        };
+        let desc = match arrow {
+            nwg::ListViewColumnSortArrow::Up => true,
+            nwg::ListViewColumnSortArrow::Down => false
+        };
+        self.sort_tables(col_idx, desc);
+        self.c.export_tables_view.set_column_sort_arrow(col_idx, Some(arrow));
+        self.reload_tables_view();
     }
 
     pub(super) fn on_resize(&mut self, _: nwg::EventData) {
@@ -162,7 +187,7 @@ impl AppWindow {
             } else if "master" == b {
                 Ordering::Greater
             } else {
-                a.cmp(b)
+                a.to_lowercase().cmp(&b.to_lowercase())
             }
         });
         let count = dbnames.len();
@@ -171,5 +196,75 @@ impl AppWindow {
             self.c.export_dbnames_combo.set_selection(Some(0));
             self.on_dbname_changed(nwg::EventData::NoData);
         }
+    }
+
+    fn table_matches_filters(&self, _table: &TableWithRowsCount) -> bool {
+        // todo
+        true
+    }
+
+    fn reload_tables_view(&self) {
+        let tv = &self.c.export_tables_view;
+        tv.set_redraw(false);
+        loop {
+            let removed = tv.remove_item(0);
+            if !removed {
+                break;
+            }
+        };
+        let mut idx = 0 as i32;
+        for rec in &self.tables {
+            if self.table_matches_filters(rec) {
+                tv.insert_item(nwg::InsertListViewItem {
+                    index: Some(idx as i32),
+                    column_index: 1,
+                    text: Some(rec.schema.clone()),
+                    image: None
+                });
+                tv.insert_item(nwg::InsertListViewItem {
+                    index: Some(idx as i32),
+                    column_index: 2,
+                    text: Some(rec.table.clone()),
+                    image: None
+                });
+                tv.insert_item(nwg::InsertListViewItem {
+                    index: Some(idx as i32),
+                    column_index: 3,
+                    text: Some(rec.row_count.to_string()),
+                    image: None
+                });
+                idx += 1;
+            }
+        }
+        tv.set_redraw(true);
+    }
+
+    fn sort_tables(&mut self, col_idx: usize, desc: bool) {
+        if col_idx < 1 || col_idx > 3 {
+            return;
+        }
+        self.tables.sort_by(|a, b| {
+            if 1 == col_idx {
+                if desc {
+                    b.schema.to_lowercase().cmp(&a.schema.to_lowercase())
+                } else {
+                    a.schema.to_lowercase().cmp(&b.schema.to_lowercase())
+                }
+            } else if 2 == col_idx {
+                if desc {
+                    b.table.to_lowercase().cmp(&a.table.to_lowercase())
+                } else {
+                    a.table.to_lowercase().cmp(&b.table.to_lowercase())
+                }
+            } else if 3 == col_idx {
+                if desc {
+                    b.row_count.cmp(&a.row_count)
+                } else {
+                    a.row_count.cmp(&b.row_count)
+                }
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        });
     }
 }

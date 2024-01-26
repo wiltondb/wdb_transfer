@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
+use std::time;
+
 use super::*;
-use nwg::EventData;
-use crate::load_tables_dialog::result::TableWithRowsCount;
 
 #[derive(Default)]
 pub struct LoadTablesDialog {
@@ -24,21 +24,45 @@ pub struct LoadTablesDialog {
 
     args: LoadTablesDialogArgs,
     load_join_handle: ui::PopupJoinHandle<LoadTablesResult>,
-    dialog_result: LoadTablesDialogResult
+    dialog_result: LoadTablesDialogResult,
+
+    progress_pending: Vec<String>,
+    progress_last_updated: u128,
 }
 
 impl LoadTablesDialog {
-    pub(super) fn on_load_complete(&mut self, _: nwg::EventData) {
-        self.c.load_notice.receive();
+
+    pub(super) fn on_progress(&mut self, _: nwg::EventData) {
+        let msg = self.c.progress_notice.receive();
+        self.progress_pending.push(msg);
+        let now = time::SystemTime::now()
+            .duration_since(time::UNIX_EPOCH)
+            .unwrap_or(Duration::from_secs(0))
+            .as_millis();
+        if now - self.progress_last_updated > 100 {
+            let joined = self.progress_pending.join("\r\n");
+            self.progress_pending.clear();
+            self.progress_last_updated = now;
+            self.c.details_box.appendln(&joined);
+        }
+    }
+
+    pub(super) fn on_complete(&mut self, _: nwg::EventData) {
+        self.c.complete_notice.receive();
         let res = self.load_join_handle.join();
         let success = res.error.is_empty();
         self.stop_progress_bar(success.clone());
         if !success {
             self.dialog_result = LoadTablesDialogResult::failure();
-            self.c.label.set_text("Load failed");
-            self.c.details_box.set_text(&res.error);
+            self.c.label.set_text("Load tables failed");
+            self.progress_pending.push(res.error);
             self.c.copy_clipboard_button.set_enabled(true);
             self.c.close_button.set_enabled(true);
+            if self.progress_pending.len() > 0 {
+                let joined = self.progress_pending.join("\r\n");
+                self.c.details_box.appendln(&joined);
+                self.progress_pending.clear();
+            }
         } else {
             self.dialog_result = LoadTablesDialogResult::success(res.tables);
             self.close(nwg::EventData::NoData)
@@ -59,12 +83,14 @@ impl LoadTablesDialog {
         }
     }
 
-    fn load_tables_from_db(conn_config: &TdsConnConfig, dbname: &str) -> Result<Vec<TableWithRowsCount>, TransferError> {
+    fn load_tables_from_db(progress: &ui::SyncNoticeValueSender<String>, conn_config: &TdsConnConfig, dbname: &str) -> Result<Vec<TableWithRowsCount>, TransferError> {
         let runtime = conn_config.create_runtime()?;
         let mut client = conn_config.open_connection(&runtime)?;
         runtime.block_on(async {
+            progress.send_value(format!("Opening database: {} ...", dbname));
             let mut qr_use = tiberius::Query::new(format!("use [{}]", dbname));
             qr_use.execute(&mut client).await?;
+            progress.send_value("Loading tables ...");
             let mut qr_tables = tiberius::Query::new("\
                 select table_schema, table_name
                 from information_schema.tables
@@ -86,8 +112,12 @@ impl LoadTablesDialog {
                         let count_i32 : i32 = row.get(0).ok_or(TransferError::from_str(&msg))?;
                         count_i32
                     },
-                    Err(_) => -1
+                    Err(e) => {
+                        progress.send_value(format!("Warning: select count failure: {}", e.to_string()));
+                        -1
+                    }
                 };
+                progress.send_value(format!("{}.{} {} rows", schema, table, count));
                 tables.push(TableWithRowsCount::new(schema, table, count));
             }
             Ok(tables)
@@ -110,12 +140,13 @@ impl ui::PopupDialog<LoadTablesDialogArgs, LoadTablesDialogResult> for LoadTable
     }
 
     fn init(&mut self) {
-        let sender = self.c.load_notice.sender();
+        let complete_sender = self.c.complete_notice.sender();
+        let progress_sender = self.c.progress_notice.sender();
         let cconf = self.args.conn_config.clone();
         let dbname = self.args.dbname.clone();
         let join_handle = thread::spawn(move || {
             let start = Instant::now();
-            let res = match LoadTablesDialog::load_tables_from_db(&cconf, &dbname) {
+            let res = match LoadTablesDialog::load_tables_from_db(&progress_sender, &cconf, &dbname) {
                 Ok((dbnames)) => LoadTablesResult::success(dbnames),
                 Err(e) => LoadTablesResult::failure(format!("{}", e))
             };
@@ -123,7 +154,7 @@ impl ui::PopupDialog<LoadTablesDialogArgs, LoadTablesDialogResult> for LoadTable
             if remaining > 0 {
                 thread::sleep(Duration::from_millis(remaining as u64));
             }
-            sender.send();
+            complete_sender.send();
             res
         });
         self.load_join_handle = ui::PopupJoinHandle::from(join_handle);
@@ -139,7 +170,7 @@ impl ui::PopupDialog<LoadTablesDialogArgs, LoadTablesDialogResult> for LoadTable
         nwg::stop_thread_dispatch();
     }
 
-    fn on_resize(&mut self, _: EventData) {
+    fn on_resize(&mut self, _: nwg::EventData) {
         self.c.update_tab_order();
     }
 }

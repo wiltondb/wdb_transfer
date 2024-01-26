@@ -49,7 +49,7 @@ impl ui::Controls for LoadDbnamesDialogControls {
             .build(&mut self.icon)?;
 
         nwg::Window::builder()
-            .size((320, 200))
+            .size((320, 280))
             .icon(Some(&self.icon))
             .center(true)
             .title("Load DB names")

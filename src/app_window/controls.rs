@@ -171,22 +171,30 @@ impl ui::Controls for AppWindowControls {
         self.export_tables_view.insert_column(nwg::InsertListViewColumn{
             index: Some(0),
             fmt: Some(nwg::ListViewColumnFlags::LEFT),
-            width: Some(20),
+            width: Some(30),
             text: Some("".to_string())
         });
         self.export_tables_view.insert_column(nwg::InsertListViewColumn{
             index: Some(1),
             fmt: Some(nwg::ListViewColumnFlags::LEFT),
-            width: Some(300),
-            text: Some("Table name".to_string())
+            width: Some(100),
+            text: Some("Schema".to_string())
         });
         self.export_tables_view.set_column_sort_arrow(1, Some(nwg::ListViewColumnSortArrow::Down));
         self.export_tables_view.insert_column(nwg::InsertListViewColumn{
             index: Some(2),
             fmt: Some(nwg::ListViewColumnFlags::LEFT),
-            width: Some(100),
+            width: Some(240),
+            text: Some("Table name".to_string())
+        });
+        self.export_tables_view.set_column_sort_arrow(2, Some(nwg::ListViewColumnSortArrow::Down));
+        self.export_tables_view.insert_column(nwg::InsertListViewColumn{
+            index: Some(3),
+            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            width: Some(80),
             text: Some("Rows count".to_string())
         });
+        self.export_tables_view.set_column_sort_arrow(3, Some(nwg::ListViewColumnSortArrow::Down));
 
         // export bottom form
 

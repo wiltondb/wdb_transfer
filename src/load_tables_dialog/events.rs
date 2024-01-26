@@ -45,9 +45,14 @@ impl ui::Events<LoadTablesDialogControls> for LoadTablesDialogEvents {
             .handler(LoadTablesDialog::close)
             .build(&mut self.events)?;
         ui::event_builder()
-            .control(&c.load_notice.notice)
+            .control(&c.progress_notice.notice)
             .event(nwg::Event::OnNotice)
-            .handler(LoadTablesDialog::on_load_complete)
+            .handler(LoadTablesDialog::on_progress)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.complete_notice.notice)
+            .event(nwg::Event::OnNotice)
+            .handler(LoadTablesDialog::on_complete)
             .build(&mut self.events)?;
 
         Ok(())

@@ -69,13 +69,14 @@ fn read_dir_paths(dir: &Path) -> Result<Vec<PathBuf>, io::Error> {
 
 fn zip_file
         <T: io::Seek + io::Write, F: Fn (&str) -> ()>
-        (zip: &mut ZipWriter<T>, root_dir: &Path, path: &Path, listener: &F) -> ZipResult<()> {
+        (zip: &mut ZipWriter<T>, root_dir: &Path, path: &Path, comp_level: u8, listener: &F) -> ZipResult<()> {
     let file = File::open(path)?;
     let meta = file.metadata()?;
     let system_time = meta.modified()?;
     let zip_time = time_to_zip_time(&system_time);
     let options = FileOptions::default()
-        .compression_method(zip::CompressionMethod::Stored)
+        .compression_method(zip::CompressionMethod::DEFLATE)
+        .compression_level(Some(comp_level as i32))
         .last_modified_time(zip_time);
     let rel_path = match root_dir.parent() {
         Some(parent) => strip_prefix(parent, path)?,
@@ -91,7 +92,7 @@ fn zip_file
 
 fn zip_dir_recursive
         <T: io::Seek + io::Write, F: Fn (&str) -> ()>
-        (zip: &mut ZipWriter<T>, root_dir: &Path, dir: &Path, listener: &F) -> ZipResult<()> {
+        (zip: &mut ZipWriter<T>, root_dir: &Path, dir: &Path, comp_level: u8, listener: &F) -> ZipResult<()> {
     if !dir.is_dir() {
         return Err(ZipError::FileNotFound);
     }
@@ -109,9 +110,9 @@ fn zip_dir_recursive
     zip.add_directory(name, options)?;
     for path in read_dir_paths(dir)? {
         if path.is_dir() {
-            zip_dir_recursive(zip, root_dir, &path, listener)?;
+            zip_dir_recursive(zip, root_dir, &path, comp_level, listener)?;
         } else {
-            zip_file(zip, root_dir, &path, listener)?;
+            zip_file(zip, root_dir, &path, comp_level, listener)?;
         }
     }
     zip.finish()?;
@@ -123,15 +124,12 @@ pub fn zip_directory<F: Fn (&str) -> ()>(src_dir: &str, dst_file: &str, comp_lev
     if !src_dir_path.is_dir() {
         return Err(ZipError::FileNotFound);
     }
-    if 0 != comp_level {
-        return Err(ZipError::UnsupportedArchive("Compression not supported"));
-    };
     let file = match File::create(Path::new(dst_file)) {
         Ok(file) => file,
         Err(e) => return Err(ZipError::Io(e))
     };
     let mut zip = zip::ZipWriter::new(BufWriter::new(file));
-    zip_dir_recursive(&mut zip, &src_dir_path, &src_dir_path, listener)?;
+    zip_dir_recursive(&mut zip, &src_dir_path, &src_dir_path, comp_level, listener)?;
     Ok(())
 }
 

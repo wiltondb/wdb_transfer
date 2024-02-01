@@ -62,6 +62,7 @@ pub(super) struct AppWindowControls {
     pub(super) connect_notice: ui::SyncNotice,
     pub(super) load_dbnames_notice: ui::SyncNotice,
     pub(super) load_tables_notice: ui::SyncNotice,
+    pub(super) export_notice: ui::SyncNotice,
 }
 
 impl ui::Controls for AppWindowControls {
@@ -226,7 +227,9 @@ impl ui::Controls for AppWindowControls {
         nwg::TextInput::builder()
             .parent(&self.export_tab)
             .font(Some(&self.font_normal))
-            .text(&std::env::var("USERPROFILE").unwrap_or(String::new()))
+            //.text(&std::env::var("USERPROFILE").unwrap_or(String::new()))
+            // todo
+            .text("C:\\tmp\\bcp1")
             .build(&mut self.export_dest_dir_input)?;
         nwg::Button::builder()
             .parent(&self.export_tab)
@@ -281,6 +284,9 @@ impl ui::Controls for AppWindowControls {
         ui::notice_builder()
             .parent(&self.window)
             .build(&mut self.load_tables_notice)?;
+        ui::notice_builder()
+            .parent(&self.window)
+            .build(&mut self.export_notice)?;
 
         self.layout.build(&self)?;
 

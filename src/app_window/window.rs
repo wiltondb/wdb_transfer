@@ -15,6 +15,7 @@
  */
 
 use std::os::windows::process::CommandExt;
+use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
 
@@ -34,6 +35,7 @@ pub struct AppWindow {
     connect_dialog_join_handle: ui::PopupJoinHandle<ConnectDialogResult>,
     load_dbnames_dialog_join_handle: ui::PopupJoinHandle<LoadDbnamesDialogResult>,
     load_tables_dialog_join_handle: ui::PopupJoinHandle<LoadTablesDialogResult>,
+    export_dialog_join_handle: ui::PopupJoinHandle<ExportDialogResult>,
 }
 
 impl AppWindow {
@@ -128,6 +130,38 @@ impl AppWindow {
             self.tables = res.tables;
         }
         self.reload_tables_view();
+    }
+
+    pub(super) fn open_export_dialog(&mut self, _: nwg::EventData) {
+        let dbname = match self.c.export_dbnames_combo.selection_string() {
+            Some(name) => name,
+            None => return
+        };
+        let tables: Vec<TableWithRowsCount> = self.tables.iter()
+            .filter(|t| t.export)
+            .map(|t| t.clone())
+            .collect();
+        let dir = self.c.export_dest_dir_input.text();
+        let filename = self.c.export_filename_input.text();
+        let dest_path = Path::new(&dir).join(&filename);
+        let mut go_on = true;
+        if dest_path.exists() {
+            let dest_path_st = dest_path.to_string_lossy().to_string();
+            go_on = ui::message_box_warning_yn(&format!(
+                "Destination file already exists:\r\n{}\r\n\r\nWould you like to overwrite it?", dest_path_st));
+        }
+        if go_on {
+            self.c.window.set_enabled(false);
+            let args = ExportDialogArgs::new(
+                &self.c.export_notice, &self.conn_config,  &dbname, &tables, &dir, &filename);
+            self.export_dialog_join_handle = ExportDialog::popup(args);
+        }
+    }
+
+    pub(super) fn await_export_dialog(&mut self, _: nwg::EventData) {
+        self.c.window.set_enabled(true);
+        self.c.export_notice.receive();
+        let _ = self.export_dialog_join_handle.join();
     }
 
     pub(super) fn open_website(&mut self, _: nwg::EventData) {

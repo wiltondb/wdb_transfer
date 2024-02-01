@@ -1,5 +1,5 @@
 /*
- * Copyright 2023, WiltonDB Software
+ * Copyright 2024, WiltonDB Software
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,25 @@
  * limitations under the License.
  */
 
-pub mod labels;
-mod table_with_rows_count;
-mod tds_conn_config;
-mod transfer_error;
-mod zip_dir;
+#[derive(Default, Clone)]
+pub struct TableWithRowsCount {
+    pub schema: String,
+    pub table: String,
+    pub row_count: i32,
+    pub export: bool,
+}
 
-pub use table_with_rows_count::TableWithRowsCount;
-pub use tds_conn_config::TdsConnConfig;
-pub use transfer_error::TransferError;
-pub use zip_dir::zip_directory;
-pub use zip_dir::unzip_directory;
+impl TableWithRowsCount {
+    pub fn new(schema: &str, table: &str, row_count: i32) -> Self {
+        Self {
+            schema: schema.to_string(),
+            table: table.to_string(),
+            row_count,
+            export: false
+        }
+    }
+
+    pub fn set_export(&mut self, export: bool) {
+        self.export = export;
+    }
+}

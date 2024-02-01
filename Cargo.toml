@@ -18,4 +18,4 @@ tiberius = "0.12.2"
 tokio = { version = "1", features = ["net", "rt"] }
 tokio-util = { version = "0.7", features = ["compat"] }
 wildmatch = "2.1.1"
-zip = { version = "0.6.6", default-features = false }
+zip = { version = "0.6.6", default-features = false, features = ["deflate"] }

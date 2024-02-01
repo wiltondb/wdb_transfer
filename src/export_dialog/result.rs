@@ -14,48 +14,40 @@
  * limitations under the License.
  */
 
-use super::*;
-
 #[derive(Default)]
-pub(super) struct LoadTablesResult {
-    pub(super) tables: Vec<TableWithRowsCount>,
-    pub(super) error: String,
+pub(super) struct ExportResult {
+    pub(super) error: String
 }
 
-impl LoadTablesResult {
-    pub(super) fn success(tables: Vec<TableWithRowsCount>) -> Self {
+impl ExportResult {
+    pub(super) fn success() -> Self {
         Self {
-            tables,
-            error: String::new()
+            error: Default::default()
         }
     }
 
     pub(super) fn failure(error: String) -> Self {
         Self {
-            error,
-            ..Default::default()
+            error
         }
     }
 }
 
 #[derive(Default, Clone)]
-pub struct LoadTablesDialogResult {
+pub struct ExportDialogResult {
     pub success: bool,
-    pub tables: Vec<TableWithRowsCount>,
 }
 
-impl LoadTablesDialogResult {
-    pub fn success(tables: Vec<TableWithRowsCount>) -> Self {
+impl ExportDialogResult {
+    pub fn success() -> Self {
         Self {
             success: true,
-            tables,
         }
     }
 
     pub fn failure() -> Self {
         Self {
             success: false,
-            ..Default::default()
         }
     }
 }

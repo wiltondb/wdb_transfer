@@ -94,6 +94,11 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
             .handler(AppWindow::open_load_dbnames_dialog)
             .build(&mut self.events)?;
         ui::event_builder()
+            .control(&c.export_run_button)
+            .event(nwg::Event::OnButtonClick)
+            .handler(AppWindow::open_export_dialog)
+            .build(&mut self.events)?;
+        ui::event_builder()
             .control(&c.export_close_button)
             .event(nwg::Event::OnButtonClick)
             .handler(AppWindow::close)
@@ -118,6 +123,11 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
             .control(&c.load_tables_notice.notice)
             .event(nwg::Event::OnNotice)
             .handler(AppWindow::await_load_tables_dialog)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.export_notice.notice)
+            .event(nwg::Event::OnNotice)
+            .handler(AppWindow::await_export_dialog)
             .build(&mut self.events)?;
 
         Ok(())

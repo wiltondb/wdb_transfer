@@ -11,11 +11,13 @@ embed-resource = "1.8"
 chrono = "0.4.30"
 clipboard-win = "4.5.0"
 duct = "0.13.6"
+flate2 = "1.0.28"
 native-tls = "0.2.11"
 nwg = { version = "1.0.12", package = "native-windows-gui", features = ["all", "flexbox"] }
-nwg_ui = "1.0.0"
+#nwg_ui = "1.0.0"
+nwg_ui = { path = "../nwg_ui" }
 tiberius = "0.12.2"
 tokio = { version = "1", features = ["net", "rt"] }
 tokio-util = { version = "0.7", features = ["compat"] }
 wildmatch = "2.1.1"
-zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
+zip = { version = "0.6.6", default-features = false }

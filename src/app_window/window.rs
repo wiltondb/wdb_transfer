@@ -176,13 +176,13 @@ impl AppWindow {
             .status();
     }
 
-    pub(super) fn on_dbname_changed(&mut self, _: nwg::EventData) {
+    pub(super) fn on_export_dbname_changed(&mut self, _: nwg::EventData) {
         if let Some(name) = &self.c.export_dbnames_combo.selection_string() {
             self.open_load_tables_dialog(nwg::EventData::NoData);
         }
     }
 
-    pub(super) fn on_tables_view_sort(&mut self, ed: nwg::EventData) {
+    pub(super) fn on_export_tables_view_sort(&mut self, ed: nwg::EventData) {
         let col_idx = if let nwg::EventData::OnListViewItemIndex
         { column_index: col_idx, .. } = ed {
             col_idx
@@ -205,23 +205,56 @@ impl AppWindow {
         self.reload_tables_view();
     }
 
-    pub(super) fn on_table_view_click(&mut self, ed: nwg::EventData) {
+    pub(super) fn on_export_tables_view_click(&mut self, ed: nwg::EventData) {
         if let nwg::EventData::OnListViewItemIndex
         { row_index: row_idx, .. } = ed {
             self.flip_export_flag(row_idx);
         };
     }
 
-    pub(super) fn on_mark_all_button(&mut self, _: nwg::EventData) {
+    pub(super) fn on_export_mark_all_button(&mut self, _: nwg::EventData) {
         self.set_all_export_flags(true);
     }
 
-    pub(super) fn on_clear_button(&mut self, _: nwg::EventData) {
+    pub(super) fn on_export_clear_button(&mut self, _: nwg::EventData) {
         self.set_all_export_flags(false);
     }
 
-    pub(super) fn on_filter_button(&mut self, _: nwg::EventData) {
+    pub(super) fn on_export_filter_button(&mut self, _: nwg::EventData) {
         self.reload_tables_view();
+    }
+
+    pub(super) fn choose_export_dest_dir(&mut self, _: nwg::EventData) {
+        if let Ok(dir) = std::env::current_dir() {
+            if let Some(d) = dir.to_str() {
+                let _ = self.c.export_dest_dir_chooser.set_default_folder(d);
+            }
+        }
+
+        if self.c.export_dest_dir_chooser.run(Some(&self.c.window)) {
+            self.c.export_dest_dir_input.set_text("");
+            if let Ok(sel) = self.c.export_dest_dir_chooser.get_selected_item() {
+                let dir = sel.to_string_lossy().to_string();
+                self.c.export_dest_dir_input.set_text(&dir);
+            }
+        }
+    }
+
+    pub(super) fn choose_import_file(&mut self, _: nwg::EventData) {
+        if let Ok(dir) = std::env::current_dir() {
+            if let Some(d) = dir.to_str() {
+                let _ = self.c.import_file_chooser.set_default_folder(d);
+            }
+        }
+
+        if self.c.import_file_chooser.run(Some(&self.c.window)) {
+            self.c.import_file_input.set_text("");
+            if let Ok(file) = self.c.import_file_chooser.get_selected_item() {
+                let fpath_st = file.to_string_lossy().to_string();
+                self.c.import_file_input.set_text(&fpath_st);
+                self.load_import_file_entries();
+            }
+        }
     }
 
     pub(super) fn on_resize(&mut self, _: nwg::EventData) {
@@ -247,12 +280,16 @@ impl AppWindow {
             }
         });
         let count = dbnames.len();
-        self.c.export_dbnames_combo.set_collection(dbnames);
+        self.c.export_dbnames_combo.set_collection(dbnames.clone());
         if count > 0 {
             //self.c.export_dbnames_combo.set_selection(Some(0));
             // todo: removeme
             self.c.export_dbnames_combo.set_selection(Some(count - 1));
-            self.on_dbname_changed(nwg::EventData::NoData);
+            self.on_export_dbname_changed(nwg::EventData::NoData);
+        }
+        self.c.import_dbnames_combo.set_collection(dbnames);
+        if count > 0 {
+            self.c.import_dbnames_combo.set_selection(Some(0));
         }
     }
 
@@ -387,5 +424,35 @@ impl AppWindow {
             image: None
         });
 
+    }
+
+    fn load_import_file_entries(&mut self) {
+        use std::fs::File;
+        use std::io::BufReader;
+        use zip::ZipArchive;
+
+        let file_path = self.c.import_file_input.text();
+        if !Path::new(&file_path).exists() {
+            ui::message_box_error(&format!("Specified file is not found, path: {}", file_path));
+            return;
+        }
+        let file = match File::open(&file_path) {
+            Ok(file) => file,
+            Err(e) => {
+                ui::message_box_error(&format!("Error opening file, path: {}, message: {}", file_path, e.to_string()));
+                return;
+            }
+        };
+        let mut reader = BufReader::new(file);
+        let zip = match ZipArchive::new(reader) {
+            Ok(zip) => zip,
+            Err(e) => {
+                ui::message_box_error(&format!("Error opening ZIP file, path: {}, message: {}", file_path, e.to_string()));
+                return;
+            }
+        };
+        for name in zip.file_names() {
+            println!("{}", name);
+        }
     }
 }

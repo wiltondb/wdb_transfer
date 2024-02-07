@@ -17,12 +17,17 @@
 use std::env;
 use std::ffi::OsStr;
 use std::fs;
+use std::fs::File;
 use std::io;
 use std::io::BufRead;
 use std::io::BufReader;
+use std::io::BufWriter;
 use std::os::windows::process::CommandExt;
 use std::path::Path;
 use std::time;
+
+use flate2::write::GzEncoder;
+use flate2::Compression;
 
 use super::*;
 
@@ -94,13 +99,14 @@ impl ExportDialog {
     }
 
     fn run_bcp_format(progress: &ui::SyncNoticeValueSender<String>, cc: &TdsConnConfig, dest_dir: &str,
-               dbname: &str, schema: &str, table: &str) -> Result<(), io::Error> {
+               dbname: &str, schema: &str, table: &str) -> Result<String, io::Error> {
         progress.send_value(format!("bcp format: {}.{}", schema, table));
+        let format_filename = format!("{}.{}.xml", schema, table);
         let cmd = duct::cmd!(
             "bcp.exe",
-            format!("[{}].[{}].[{}]", dbname, schema, table),
+            format!("{}.{}.{}", dbname, schema, table),
             "format", "nul",
-            "-f", format!("{}_{}.xml", schema, table),
+            "-f", &format_filename,
             "-x",
             "-n",
             "-S", format!("{},{}", &cc.hostname, &cc.port),
@@ -138,17 +144,18 @@ impl ExportDialog {
                 "bcp process failure: {}", e)))
         }
 
-        Ok(())
+        Ok(format_filename)
     }
 
     fn run_bcp_data(progress: &ui::SyncNoticeValueSender<String>, cc: &TdsConnConfig, dest_dir: &str,
-                      dbname: &str, schema: &str, table: &str) -> Result<(), io::Error> {
+                      dbname: &str, schema: &str, table: &str, format_filename: &str) -> Result<String, io::Error> {
         progress.send_value(format!("bcp data: {}.{}", schema, table));
+        let data_filename = format!("{}.{}.bcp", schema, table);
         let cmd = duct::cmd!(
             "bcp.exe",
-            format!("[{}].[{}].[{}]", dbname, schema, table),
-            "out", format!("{}_{}.bcp", schema, table),
-            "-f", format!("{}_{}.xml", schema, table),
+            format!("{}.{}.{}", dbname, schema, table),
+            "out", &data_filename,
+            "-f", &format_filename,
             "-S", format!("{},{}", &cc.hostname, &cc.port),
             "-U", &cc.username,
             "-P", &cc.password
@@ -184,13 +191,31 @@ impl ExportDialog {
                 "bcp process failure: {}", e)))
         }
 
-        Ok(())
+        Ok(data_filename)
+    }
+
+    fn compress_bcp_file(progress: &ui::SyncNoticeValueSender<String>, dest_dir: &str,
+                    data_filename: &str, compression: u32) -> Result<String, io::Error> {
+        progress.send_value(format!("Compressing: {}", data_filename));
+        let compressed_filename = format!("{}.gz", data_filename);
+        let src_file_path = Path::new(dest_dir).join(data_filename);
+        let dest_file_path = Path::new(dest_dir).join(&compressed_filename);
+        {
+            let src_file = File::open(&src_file_path)?;
+            let dest_file = File::create(&dest_file_path)?;
+            let mut reader = BufReader::new(src_file);
+            let mut writer = GzEncoder::new(BufWriter::new(dest_file), Compression::new(compression));
+            std::io::copy(&mut reader, &mut writer)?;
+        }
+        fs::remove_file(&src_file_path)?;
+        Ok(compressed_filename)
     }
 
     fn export_tables(progress: &ui::SyncNoticeValueSender<String>, cc: &TdsConnConfig, eargs: &ExportArgs, dest_dir: &str) -> Result<(), io::Error> {
         for table in eargs.tables.iter() {
-            Self::run_bcp_format(progress, cc, dest_dir, &eargs.dbname, &table.schema, &table.table)?;
-            Self::run_bcp_data(progress, cc, dest_dir, &eargs.dbname, &table.schema, &table.table)?;
+            let format_filename = Self::run_bcp_format(progress, cc, dest_dir, &eargs.dbname, &table.schema, &table.table)?;
+            let data_filename = Self::run_bcp_data(progress, cc, dest_dir, &eargs.dbname, &table.schema, &table.table, &format_filename)?;
+            let _ = Self::compress_bcp_file(&progress, &dest_dir, &data_filename, 6)?;
         }
         Ok(())
     }
@@ -216,7 +241,7 @@ impl ExportDialog {
         let listener = |en: &str| {
             progress.send_value(en);
         };
-        if let Err(e) = zip_directory(dest_dir_st, dest_file_st, 6, &listener) {
+        if let Err(e) = zip_directory(dest_dir_st, dest_file_st, 0, &listener) {
             return Err(io::Error::new(io::ErrorKind::Other, e.to_string()))
         };
         std::fs::remove_dir_all(dest_dir_path)?;

@@ -29,6 +29,11 @@ pub(super) struct AppWindowLayout {
     export_buttons_layout: nwg::FlexboxLayout,
 
     import_tab_layout: nwg::FlexboxLayout,
+    import_tables_top_layout: nwg::FlexboxLayout,
+    import_tables_view_layout: nwg::FlexboxLayout,
+    import_dbnames_layout: nwg::FlexboxLayout,
+    import_file_layout: nwg::FlexboxLayout,
+    import_buttons_layout: nwg::FlexboxLayout,
 }
 
 impl ui::Layout<AppWindowControls> for AppWindowLayout {
@@ -36,7 +41,7 @@ impl ui::Layout<AppWindowControls> for AppWindowLayout {
     fn build(&self, c: &AppWindowControls) -> Result<(), nwg::NwgError> {
 
         nwg::FlexboxLayout::builder()
-            .parent(&c.export_tab)
+            .parent(&c.import_tab)
             .flex_direction(ui::FlexDirection::Row)
             .auto_spacing(None)
             .child(&c.export_tables_mark_all_button)
@@ -179,7 +184,125 @@ impl ui::Layout<AppWindowControls> for AppWindowLayout {
 
         nwg::FlexboxLayout::builder()
             .parent(&c.import_tab)
+            .flex_direction(ui::FlexDirection::Row)
+            .auto_spacing(None)
+            .child(&c.import_tables_mark_all_button)
+            .child_size(ui::size_builder()
+                .width_button_normal()
+                .height_button()
+                .build())
+            .child(&c.import_tables_clear_button)
+            .child_size(ui::size_builder()
+                .width_button_normal()
+                .height_button()
+                .build())
+            .child_margin(ui::margin_builder()
+                .start_pt(5)
+                .build())
+            .child(&c.import_tables_filter_input)
+            .child_margin(ui::margin_builder()
+                .start_pt(5)
+                .build())
+            .child_flex_grow(1.0)
+            .child(&c.import_tables_filter_button)
+            .child_size(ui::size_builder()
+                .width_button_normal()
+                .height_button()
+                .build())
+            .child_margin(ui::margin_builder()
+                .start_pt(5)
+                .build())
+            .build_partial(&self.import_tables_top_layout)?;
+
+        nwg::FlexboxLayout::builder()
+            .parent(&c.import_tab)
+            .flex_direction(ui::FlexDirection::Row)
+            .child(&c.import_tables_view)
+            .child_flex_grow(1.0)
+            .auto_spacing(None)
+            .build_partial(&self.import_tables_view_layout)?;
+
+        nwg::FlexboxLayout::builder()
+            .parent(&c.import_tab)
+            .flex_direction(ui::FlexDirection::Row)
+            .auto_spacing(None)
+            .child(&c.import_dbnames_label)
+            .child_size(ui::size_builder()
+                .width_label_normal()
+                .height_input_form_row()
+                .build())
+            .child(&c.import_dbnames_combo)
+            .child_margin(ui::margin_builder()
+                .start_pt(5)
+                .build())
+            .child_flex_grow(1.0)
+            .child(&c.import_dbnames_reload_button)
+            .child_size(ui::size_builder()
+                .width_button_normal()
+                .height_button()
+                .build())
+            .child_margin(ui::margin_builder()
+                .start_pt(5)
+                .build())
+            .build_partial(&self.import_dbnames_layout)?;
+
+        nwg::FlexboxLayout::builder()
+            .parent(&c.import_tab)
+            .flex_direction(ui::FlexDirection::Row)
+            .auto_spacing(None)
+            .child(&c.import_file_label)
+            .child_size(ui::size_builder()
+                .width_label_normal()
+                .height_input_form_row()
+                .build())
+            .child(&c.import_file_input)
+            .child_margin(ui::margin_builder()
+                .start_pt(5)
+                .build())
+            .child_flex_grow(1.0)
+            .child(&c.import_file_button)
+            .child_size(ui::size_builder()
+                .width_button_normal()
+                .height_button()
+                .build())
+            .child_margin(ui::margin_builder()
+                .start_pt(5)
+                .build())
+            .build_partial(&self.import_file_layout)?;
+
+        nwg::FlexboxLayout::builder()
+            .parent(&c.import_tab)
+            .flex_direction(ui::FlexDirection::Row)
+            .justify_content(ui::JustifyContent::FlexEnd)
+            .auto_spacing(None)
+            .child(&c.import_run_button)
+            .child_size(ui::size_builder()
+                .width_button_xwide()
+                .height_button()
+                .build())
+            .child_margin(ui::margin_builder()
+                .top_pt(10)
+                .build())
+            .child(&c.import_close_button)
+            .child_size(ui::size_builder()
+                .width_button_normal()
+                .height_button()
+                .build())
+            .child_margin(ui::margin_builder()
+                .start_pt(5)
+                .top_pt(10)
+                .build())
+            .build_partial(&self.import_buttons_layout)?;
+
+        nwg::FlexboxLayout::builder()
+            .parent(&c.import_tab)
             .flex_direction(ui::FlexDirection::Column)
+            .child_layout(&self.import_tables_top_layout)
+            .child_layout(&self.import_tables_view_layout)
+            .child_flex_grow(1.0)
+            .child_layout(&self.import_dbnames_layout)
+            .child_layout(&self.import_file_layout)
+            .child_layout(&self.import_buttons_layout)
             .build(&self.import_tab_layout)?;
 
         // tabs container

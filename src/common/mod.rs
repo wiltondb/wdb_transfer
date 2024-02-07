@@ -16,11 +16,13 @@
 
 pub mod labels;
 mod table_with_rows_count;
+mod table_with_size;
 mod tds_conn_config;
 mod transfer_error;
 mod zip_dir;
 
 pub use table_with_rows_count::TableWithRowsCount;
+pub use table_with_size::TableWithSize;
 pub use tds_conn_config::TdsConnConfig;
 pub use transfer_error::TransferError;
 pub use zip_dir::zip_directory;

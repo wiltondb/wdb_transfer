@@ -56,6 +56,21 @@ pub(super) struct AppWindowControls {
     pub(super) export_run_button: nwg::Button,
     pub(super) export_close_button: nwg::Button,
 
+    pub(super) import_tables_mark_all_button: nwg::Button,
+    pub(super) import_tables_clear_button: nwg::Button,
+    pub(super) import_tables_filter_input: nwg::TextInput,
+    pub(super) import_tables_filter_button: nwg::Button,
+    pub(super) import_tables_view: nwg::ListView,
+    pub(super) import_dbnames_label: nwg::Label,
+    pub(super) import_dbnames_combo: nwg::ComboBox<String>,
+    pub(super) import_dbnames_reload_button: nwg::Button,
+    pub(super) import_file_label: nwg::Label,
+    pub(super) import_file_input: nwg::TextInput,
+    pub(super) import_file_button: nwg::Button,
+    pub(super) import_file_chooser: nwg::FileDialog,
+    pub(super) import_run_button: nwg::Button,
+    pub(super) import_close_button: nwg::Button,
+
     pub(super) status_bar: nwg::StatusBar,
 
     pub(super) about_notice: ui::SyncNotice,
@@ -265,6 +280,121 @@ impl ui::Controls for AppWindowControls {
             .font(Some(&self.font_normal))
             .build(&mut self.export_close_button)?;
 
+        // import top form
+
+        nwg::Button::builder()
+            .parent(&self.import_tab)
+            .text("Mark all")
+            .font(Some(&self.font_normal))
+            .build(&mut self.import_tables_mark_all_button)?;
+        nwg::Button::builder()
+            .parent(&self.import_tab)
+            .text("Clear all")
+            .font(Some(&self.font_normal))
+            .build(&mut self.import_tables_clear_button)?;
+        nwg::TextInput::builder()
+            .parent(&self.import_tab)
+            .placeholder_text(Some("Table name with '*' and '?' wildcards"))
+            .font(Some(&self.font_normal))
+            .build(&mut self.import_tables_filter_input)?;
+        nwg::Button::builder()
+            .parent(&self.import_tab)
+            .text("Search")
+            .font(Some(&self.font_normal))
+            .build(&mut self.import_tables_filter_button)?;
+
+        // import tables view
+
+        nwg::ListView::builder()
+            .parent(&self.import_tab)
+            .item_count(10)
+            .list_style(nwg::ListViewStyle::Detailed)
+            .focus(true)
+            .ex_flags(nwg::ListViewExFlags::GRID | nwg::ListViewExFlags::FULL_ROW_SELECT)
+            .build(&mut self.import_tables_view)?;
+        self.import_tables_view.set_headers_enabled(true);
+        self.import_tables_view.insert_column(nwg::InsertListViewColumn{
+            index: Some(0),
+            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            width: Some(50),
+            text: Some("Import".to_string())
+        });
+        self.import_tables_view.set_column_sort_arrow(0, Some(nwg::ListViewColumnSortArrow::Down));
+        self.import_tables_view.insert_column(nwg::InsertListViewColumn{
+            index: Some(1),
+            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            width: Some(80),
+            text: Some("Schema".to_string())
+        });
+        self.import_tables_view.set_column_sort_arrow(1, Some(nwg::ListViewColumnSortArrow::Down));
+        self.import_tables_view.insert_column(nwg::InsertListViewColumn{
+            index: Some(2),
+            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            width: Some(240),
+            text: Some("Table name".to_string())
+        });
+        self.import_tables_view.set_column_sort_arrow(2, Some(nwg::ListViewColumnSortArrow::Down));
+        self.import_tables_view.insert_column(nwg::InsertListViewColumn{
+            index: Some(3),
+            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            width: Some(80),
+            text: Some("Size".to_string())
+        });
+        self.import_tables_view.set_column_sort_arrow(3, Some(nwg::ListViewColumnSortArrow::Down));
+
+        // import bottom form
+
+        nwg::Label::builder()
+            .parent(&self.import_tab)
+            .text("Database:")
+            .font(Some(&self.font_normal))
+            .background_color(Some(COLOR_WHITE))
+            .h_align(nwg::HTextAlign::Left)
+            .build(&mut self.import_dbnames_label)?;
+        nwg::ComboBox::builder()
+            .parent(&self.import_tab)
+            .font(Some(&self.font_normal))
+            .build(&mut self.import_dbnames_combo)?;
+        nwg::Button::builder()
+            .parent(&self.import_tab)
+            .text("Reload")
+            .font(Some(&self.font_normal))
+            .build(&mut self.import_dbnames_reload_button)?;
+        nwg::Label::builder()
+            .parent(&self.import_tab)
+            .text("Import file:")
+            .font(Some(&self.font_normal))
+            .background_color(Some(COLOR_WHITE))
+            .h_align(nwg::HTextAlign::Left)
+            .build(&mut self.import_file_label)?;
+        nwg::TextInput::builder()
+            .parent(&self.import_tab)
+            .font(Some(&self.font_normal))
+            .text("")
+            .build(&mut self.import_file_input)?;
+        nwg::Button::builder()
+            .parent(&self.import_tab)
+            .text("Choose")
+            .font(Some(&self.font_normal))
+            .build(&mut self.import_file_button)?;
+        nwg::FileDialog::builder()
+            .title("Choose import file")
+            .action(nwg::FileDialogAction::Open)
+            .build(&mut self.import_file_chooser)?;
+
+        // import buttons
+
+        nwg::Button::builder()
+            .parent(&self.import_tab)
+            .text("Run data import")
+            .font(Some(&self.font_normal))
+            .build(&mut self.import_run_button)?;
+        nwg::Button::builder()
+            .parent(&self.import_tab)
+            .text("Close")
+            .font(Some(&self.font_normal))
+            .build(&mut self.import_close_button)?;
+
         // other
 
         nwg::StatusBar::builder()
@@ -306,6 +436,18 @@ impl ui::Controls for AppWindowControls {
             .control(&self.export_filename_input)
             .control(&self.export_run_button)
             .control(&self.export_close_button)
+            .build();
+
+        ui::tab_order_builder()
+            .control(&self.import_tables_mark_all_button)
+            .control(&self.import_tables_clear_button)
+            .control(&self.import_tables_filter_input)
+            .control(&self.import_tables_filter_button)
+            .control(&self.import_dbnames_combo)
+            .control(&self.import_file_input)
+            .control(&self.import_file_button)
+            .control(&self.import_run_button)
+            .control(&self.import_close_button)
             .build();
     }
 }

@@ -41,12 +41,12 @@ impl TdsConnConfig {
         Ok(res)
     }
 
-    pub fn open_connection(&self, runtime: &Runtime) -> Result<Client<Compat<TcpStream>>, TransferError> {
+    fn open_connection(&self, runtime: &Runtime, dbname: &str) -> Result<Client<Compat<TcpStream>>, TransferError> {
         runtime.block_on(async {
             let mut config = Config::new();
             config.host(&self.hostname);
             config.port(self.port);
-            config.database(&self.database);
+            config.database(dbname);
             config.authentication(AuthMethod::sql_server(&self.username, &self.password));
             if self.accept_invalid_tls {
                 config.trust_cert();
@@ -58,4 +58,11 @@ impl TdsConnConfig {
         })
     }
 
+    pub fn open_connection_default(&self, runtime: &Runtime) -> Result<Client<Compat<TcpStream>>, TransferError> {
+        self.open_connection(runtime, &self.database)
+    }
+
+    pub fn open_connection_to_db(&self, runtime: &Runtime, dbname: &str) -> Result<Client<Compat<TcpStream>>, TransferError> {
+        self.open_connection(runtime, dbname)
+    }
 }

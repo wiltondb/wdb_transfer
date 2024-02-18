@@ -210,7 +210,7 @@ impl ui::Controls for AppWindowControls {
             index: Some(3),
             fmt: Some(nwg::ListViewColumnFlags::LEFT),
             width: Some(80),
-            text: Some("Rows count".to_string())
+            text: Some("Rows est.".to_string())
         });
         self.export_tables_view.set_column_sort_arrow(3, Some(nwg::ListViewColumnSortArrow::Down));
 

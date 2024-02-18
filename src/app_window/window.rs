@@ -128,6 +128,7 @@ impl AppWindow {
         self.tables = Vec::new();
         if res.success {
             self.tables = res.tables;
+            self.sort_tables_by_schema_and_name();
         }
         self.reload_tables_view();
     }
@@ -344,6 +345,20 @@ impl AppWindow {
             }
         }
         tv.set_redraw(true);
+    }
+
+    fn sort_tables_by_schema_and_name(&mut self) {
+        self.tables.sort_by(|a, b| {
+            let a_schema = a.schema.to_lowercase();
+            let b_schema = b.schema.to_lowercase();
+            if a_schema.gt(&b_schema) {
+                std::cmp::Ordering::Greater
+            } else if a_schema.lt(&b_schema) {
+                std::cmp::Ordering::Less
+            } else {
+                a.table.to_lowercase().cmp(&b.table.to_lowercase())
+            }
+        });
     }
 
     fn sort_tables(&mut self, col_idx: usize, desc: bool) {

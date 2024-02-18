@@ -85,38 +85,68 @@ impl LoadTablesDialog {
 
     fn load_tables_from_db(progress: &ui::SyncNoticeValueSender<String>, conn_config: &TdsConnConfig, dbname: &str) -> Result<Vec<TableWithRowsCount>, TransferError> {
         let runtime = conn_config.create_runtime()?;
-        let mut client = conn_config.open_connection(&runtime)?;
+        let mut client = conn_config.open_connection_to_db(&runtime, dbname)?;
         runtime.block_on(async {
-            progress.send_value(format!("Opening database: {} ...", dbname));
-            let mut qr_use = tiberius::Query::new(format!("use [{}]", dbname));
-            qr_use.execute(&mut client).await?;
             progress.send_value("Loading tables ...");
-            let mut qr_tables = tiberius::Query::new("\
-                select table_schema, table_name
-                from information_schema.tables
-                where table_type = 'BASE TABLE'
-                and table_catalog = @P1");
-            qr_tables.bind(dbname);
-            let mut stream_tables = qr_tables.query(&mut client).await?;
-            let rows = stream_tables.into_first_result().await?;
+            let mut qr_bbf = tiberius::Query::new("\
+                select
+                    schema_name(tb.schema_id) as table_schema,
+                    tb.name as table_name,
+                    case
+                        when pc.reltuples is null then cast(-1 as bigint)
+                        else cast(pc.reltuples as bigint)
+                    end as row_count
+                from sys.tables as tb
+                left join pg_catalog.pg_class pc
+                  on pc.relnamespace = tb.schema_id
+                  and pc.relname = tb.name
+                where
+                    pc.relkind in ('r', 'f', 'p')
+            ");
+            let mut qs_bbf = qr_bbf.query(&mut client).await;
+            let mut qs = if let Ok(qs) = qs_bbf {
+                qs
+            } else {
+                let mut qr_mssql = tiberius::Query::new("\
+                    select
+                        schema_name(tb.schema_id) as table_schema,
+                        tb.name as table_name,
+                        case
+                            when st.row_count is null then cast(-1 as bigint)
+                            else st.row_count
+                        end as row_count
+                    from sys.tables as tb
+                    left join sys.dm_db_partition_stats as st
+                        on tb.object_id = st.object_id
+                    where
+                        tb.type_desc = 'USER_TABLE'
+                        and st.index_id IN (0, 1)
+                ");
+                std::mem::drop(qs_bbf);
+                let mut qs_mssql = qr_mssql.query(&mut client).await;
+                if let Ok(qs) = qs_mssql {
+                    qs
+                } else {
+                    let mut qr_generic = tiberius::Query::new("\
+                        select
+                            table_schema,
+                            table_name,
+                            cast(-1 as bigint) as row_count
+                        from information_schema.tables
+                        where table_type = 'BASE TABLE'
+                        and table_catalog = @P1");
+                    qr_generic.bind(dbname);
+                    std::mem::drop(qs_mssql);
+                    qr_generic.query(&mut client).await?
+                }
+            };
+            let rows = qs.into_first_result().await?;
             let mut tables = Vec::new();
             let msg = "Tables select error";
             for row in rows.iter() {
                 let schema: &str = row.get(0).ok_or(TransferError::from_str(msg))?;
                 let table: &str = row.get(1).ok_or(TransferError::from_str(msg))?;
-                let mut qr_count = tiberius::Query::new(format!("select count(1) from [{}].[{}]", schema, table));
-                let count = match qr_count.query(&mut client).await {
-                    Ok(stream_count) => {
-                        let row_opt = stream_count.into_row().await?;
-                        let row = row_opt.ok_or(TransferError::from_str(msg))?;
-                        let count_i32 : i32 = row.get(0).ok_or(TransferError::from_str(&msg))?;
-                        count_i32
-                    },
-                    Err(e) => {
-                        progress.send_value(format!("Warning: select count failure: {}", e.to_string()));
-                        -1
-                    }
-                };
+                let count: i64 = row.get(2).ok_or(TransferError::from_str(msg))?;
                 progress.send_value(format!("{}.{} {} rows", schema, table, count));
                 tables.push(TableWithRowsCount::new(schema, table, count));
             }
@@ -147,7 +177,7 @@ impl ui::PopupDialog<LoadTablesDialogArgs, LoadTablesDialogResult> for LoadTable
         let join_handle = thread::spawn(move || {
             let start = Instant::now();
             let res = match LoadTablesDialog::load_tables_from_db(&progress_sender, &cconf, &dbname) {
-                Ok((dbnames)) => LoadTablesResult::success(dbnames),
+                Ok(dbnames) => LoadTablesResult::success(dbnames),
                 Err(e) => LoadTablesResult::failure(format!("{}", e))
             };
             let remaining = 1000 - start.elapsed().as_millis() as i64;

@@ -57,7 +57,7 @@ impl ConnectCheckDialog {
 
     fn check_tds_conn(conn_config: &TdsConnConfig) -> Result<String, TransferError> {
         let runtime = conn_config.create_runtime()?;
-        let mut client = conn_config.open_connection(&runtime)?;
+        let mut client = conn_config.open_connection_default(&runtime)?;
         runtime.block_on(async {
             let mut qr = tiberius::Query::new("select @@version");
             let mut stream = qr.query(&mut client).await?;

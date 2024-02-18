@@ -18,12 +18,12 @@
 pub struct TableWithRowsCount {
     pub schema: String,
     pub table: String,
-    pub row_count: i32,
+    pub row_count: i64,
     pub export: bool,
 }
 
 impl TableWithRowsCount {
-    pub fn new(schema: &str, table: &str, row_count: i32) -> Self {
+    pub fn new(schema: &str, table: &str, row_count: i64) -> Self {
         Self {
             schema: schema.to_string(),
             table: table.to_string(),

@@ -60,7 +60,7 @@ impl LoadDbnamesDialog {
 
     fn load_dbnames_from_db(conn_config: &TdsConnConfig) -> Result<Vec<String>, TransferError> {
         let runtime = conn_config.create_runtime()?;
-        let mut client = conn_config.open_connection(&runtime)?;
+        let mut client = conn_config.open_connection_default(&runtime)?;
         runtime.block_on(async {
             let mut qr = tiberius::Query::new("select name from sys.databases");
             let mut stream = qr.query(&mut client).await?;

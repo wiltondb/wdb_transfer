@@ -12,6 +12,7 @@ chrono = "0.4.30"
 clipboard-win = "4.5.0"
 duct = "0.13.6"
 flate2 = "1.0.28"
+human_bytes = "0.4.3"
 native-tls = "0.2.11"
 nwg = { version = "1.0.12", package = "native-windows-gui", features = ["all", "flexbox"] }
 #nwg_ui = "1.0.0"

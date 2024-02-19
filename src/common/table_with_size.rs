@@ -29,7 +29,7 @@ impl TableWithSize {
         let parts = zip_entry_name.split(".").collect::<Vec<&str>>();
         if !(4 == parts.len() && "bcp" == parts[2] && "gz" == parts[3]) {
             return Err(TransferError::from_string(format!(
-                "Invalid ZIP entry name: {}", zip_entry_name)));
+                "Unexpected ZIP entry name: {}", zip_entry_name)));
         }
         Ok(Self {
             schema: parts[0].to_string(),
@@ -37,9 +37,5 @@ impl TableWithSize {
             size_bytes,
             import: false
         })
-    }
-
-    pub fn set_import(&mut self, import: bool) {
-        self.import = import;
     }
 }

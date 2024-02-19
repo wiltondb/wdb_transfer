@@ -88,7 +88,7 @@ impl LoadTablesDialog {
         let mut client = conn_config.open_connection_to_db(&runtime, dbname)?;
         runtime.block_on(async {
             progress.send_value("Loading tables ...");
-            let mut qr_bbf = tiberius::Query::new("\
+            let qr_bbf = tiberius::Query::new("\
                 select
                     schema_name(tb.schema_id) as table_schema,
                     tb.name as table_name,
@@ -101,13 +101,12 @@ impl LoadTablesDialog {
                   on pc.relnamespace = tb.schema_id
                   and pc.relname = tb.name
                 where
-                    pc.relkind in ('r', 'f', 'p')
-            ");
-            let mut qs_bbf = qr_bbf.query(&mut client).await;
-            let mut qs = if let Ok(qs) = qs_bbf {
+                    pc.relkind in ('r', 'f', 'p')");
+            let qs_bbf = qr_bbf.query(&mut client).await;
+            let qs = if let Ok(qs) = qs_bbf {
                 qs
             } else {
-                let mut qr_mssql = tiberius::Query::new("\
+                let qr_mssql = tiberius::Query::new("\
                     select
                         schema_name(tb.schema_id) as table_schema,
                         tb.name as table_name,
@@ -120,10 +119,9 @@ impl LoadTablesDialog {
                         on tb.object_id = st.object_id
                     where
                         tb.type_desc = 'USER_TABLE'
-                        and st.index_id IN (0, 1)
-                ");
+                        and st.index_id IN (0, 1)");
                 std::mem::drop(qs_bbf);
-                let mut qs_mssql = qr_mssql.query(&mut client).await;
+                let qs_mssql = qr_mssql.query(&mut client).await;
                 if let Ok(qs) = qs_mssql {
                     qs
                 } else {

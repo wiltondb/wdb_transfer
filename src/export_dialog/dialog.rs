@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-use std::env;
 use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;
@@ -47,12 +46,15 @@ impl ExportDialog {
 
     pub(super) fn on_progress(&mut self, _: nwg::EventData) {
         let msg = self.c.progress_notice.receive();
-        self.progress_pending.push(msg);
+        let flush_msg = msg.is_empty();
+        if !flush_msg {
+            self.progress_pending.push(msg);
+        }
         let now = time::SystemTime::now()
             .duration_since(time::UNIX_EPOCH)
             .unwrap_or(Duration::from_secs(0))
             .as_millis();
-        if now - self.progress_last_updated > 100 {
+        if flush_msg || now - self.progress_last_updated > 100 {
             let joined = self.progress_pending.join("\r\n");
             self.progress_pending.clear();
             self.progress_last_updated = now;
@@ -100,7 +102,7 @@ impl ExportDialog {
 
     fn run_bcp_format(progress: &ui::SyncNoticeValueSender<String>, cc: &TdsConnConfig, dest_dir: &str,
                dbname: &str, schema: &str, table: &str) -> Result<String, io::Error> {
-        progress.send_value(format!("bcp format: {}.{}", schema, table));
+        progress.send_value(format!("Creating bcp format file: {}.{}", schema, table));
         let format_filename = format!("{}.{}.xml", schema, table);
         let cmd = duct::cmd!(
             "bcp.exe",
@@ -149,14 +151,14 @@ impl ExportDialog {
 
     fn run_bcp_data(progress: &ui::SyncNoticeValueSender<String>, cc: &TdsConnConfig, dest_dir: &str,
                       dbname: &str, schema: &str, table: &str, format_filename: &str) -> Result<String, io::Error> {
-        progress.send_value(format!("bcp data: {}.{}", schema, table));
+        progress.send_value(format!("Exporting data: {}.{}", schema, table));
         let data_filename = format!("{}.{}.bcp", schema, table);
         let cmd = duct::cmd!(
             "bcp.exe",
             format!("{}.{}.{}", dbname, schema, table),
             "out", &data_filename,
             "-f", &format_filename,
-            "-S", format!("{},{}", &cc.hostname, &cc.port),
+            "-S", format!("tcp:{},{}", &cc.hostname, &cc.port),
             "-U", &cc.username,
             "-P", &cc.password
         )
@@ -197,6 +199,7 @@ impl ExportDialog {
     fn compress_bcp_file(progress: &ui::SyncNoticeValueSender<String>, dest_dir: &str,
                     data_filename: &str, compression: u32) -> Result<String, io::Error> {
         progress.send_value(format!("Compressing: {}", data_filename));
+        progress.send_value("");
         let compressed_filename = format!("{}.gz", data_filename);
         let src_file_path = Path::new(dest_dir).join(data_filename);
         let dest_file_path = Path::new(dest_dir).join(&compressed_filename);

@@ -78,6 +78,7 @@ pub(super) struct AppWindowControls {
     pub(super) load_dbnames_notice: ui::SyncNotice,
     pub(super) load_tables_notice: ui::SyncNotice,
     pub(super) export_notice: ui::SyncNotice,
+    pub(super) import_notice: ui::SyncNotice,
 }
 
 impl ui::Controls for AppWindowControls {
@@ -417,6 +418,9 @@ impl ui::Controls for AppWindowControls {
         ui::notice_builder()
             .parent(&self.window)
             .build(&mut self.export_notice)?;
+        ui::notice_builder()
+            .parent(&self.window)
+            .build(&mut self.import_notice)?;
 
         self.layout.build(&self)?;
 

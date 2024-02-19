@@ -64,6 +64,15 @@ fn read_dir_paths(dir: &Path) -> Result<Vec<PathBuf>, io::Error> {
         let en = en?;
         res.push(en.path())
     }
+    res.sort_by(|a, b| {
+        if a.is_dir() && !b.is_dir() {
+            std::cmp::Ordering::Greater
+        } else if b.is_dir() && !a.is_dir() {
+            std::cmp::Ordering::Less
+        } else {
+            a.cmp(b)
+        }
+    });
     Ok(res)
 }
 
@@ -135,6 +144,7 @@ pub fn zip_directory<F: Fn (&str) -> ()>(src_dir: &str, dst_file: &str, comp_lev
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn unzip_directory<F: Fn (&str) -> ()>(zip_file: &str, dest_dir: &str, listener: &F) -> zip::result::ZipResult<String> {
     let file = match File::open(Path::new(zip_file)) {
         Ok(file) => file,

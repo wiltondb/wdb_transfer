@@ -14,21 +14,40 @@
  * limitations under the License.
  */
 
-#[derive(Default, Clone)]
-pub struct TableWithRowsCount {
-    pub schema: String,
-    pub table: String,
-    pub row_count: i64,
-    pub export: bool,
+#[derive(Default)]
+pub(super) struct ImportResult {
+    pub(super) error: String
 }
 
-impl TableWithRowsCount {
-    pub fn new(schema: &str, table: &str, row_count: i64) -> Self {
+impl ImportResult {
+    pub(super) fn success() -> Self {
         Self {
-            schema: schema.to_string(),
-            table: table.to_string(),
-            row_count,
-            export: false
+            error: Default::default()
+        }
+    }
+
+    pub(super) fn failure(error: String) -> Self {
+        Self {
+            error
+        }
+    }
+}
+
+#[derive(Default, Clone)]
+pub struct ImportDialogResult {
+    pub success: bool,
+}
+
+impl ImportDialogResult {
+    pub fn success() -> Self {
+        Self {
+            success: true,
+        }
+    }
+
+    pub fn failure() -> Self {
+        Self {
+            success: false,
         }
     }
 }

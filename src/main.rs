@@ -22,6 +22,7 @@ mod app_window;
 mod connect_check_dialog;
 mod connect_dialog;
 mod export_dialog;
+mod import_dialog;
 mod load_dbnames_dialog;
 mod load_tables_dialog;
 

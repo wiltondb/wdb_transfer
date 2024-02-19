@@ -17,8 +17,8 @@
 use super::*;
 
 #[derive(Default)]
-pub(super) struct ExportDialogControls {
-    layout: ExportDialogLayout,
+pub(super) struct ImportDialogControls {
+    layout: ImportDialogLayout,
 
     pub(super) font_normal: nwg::Font,
 
@@ -35,7 +35,7 @@ pub(super) struct ExportDialogControls {
     pub(super) complete_notice: ui::SyncNotice,
 }
 
-impl ui::Controls for ExportDialogControls {
+impl ui::Controls for ImportDialogControls {
     fn build(&mut self) -> Result<(), nwg::NwgError> {
         nwg::Font::builder()
             .size(ui::font_size_builder()
@@ -53,7 +53,7 @@ impl ui::Controls for ExportDialogControls {
             .size((480, 480))
             .icon(Some(&self.icon))
             .center(true)
-            .title("Export")
+            .title("Import")
             .build(&mut self.window)?;
 
         nwg::ProgressBar::builder()
@@ -65,7 +65,7 @@ impl ui::Controls for ExportDialogControls {
             .build(&mut self.progress_bar)?;
 
         nwg::Label::builder()
-            .text("Running export ...")
+            .text("Running import ...")
             .flags(nwg::LabelFlags::VISIBLE | nwg::LabelFlags::ELIPSIS)
             .font(Some(&self.font_normal))
             .v_align(nwg::VTextAlign::Top)

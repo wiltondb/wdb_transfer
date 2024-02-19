@@ -59,8 +59,8 @@ impl ConnectCheckDialog {
         let runtime = conn_config.create_runtime()?;
         let mut client = conn_config.open_connection_default(&runtime)?;
         runtime.block_on(async {
-            let mut qr = tiberius::Query::new("select @@version");
-            let mut stream = qr.query(&mut client).await?;
+            let qr = tiberius::Query::new("select @@version");
+            let stream = qr.query(&mut client).await?;
             let row_opt = stream.into_row().await?;
             let msg = "Invalid empty response to version query".to_string();
             let row = row_opt.ok_or(TransferError::new(&msg))?;

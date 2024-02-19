@@ -96,7 +96,7 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
         ui::event_builder()
             .control(&c.export_dest_dir_button)
             .event(nwg::Event::OnButtonClick)
-            .handler(AppWindow::choose_export_dest_dir)
+            .handler(AppWindow::on_choose_export_dest_dir)
             .build(&mut self.events)?;
         ui::event_builder()
             .control(&c.export_run_button)
@@ -110,6 +110,33 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
             .build(&mut self.events)?;
 
         ui::event_builder()
+            .control(&c.import_tables_mark_all_button)
+            .event(nwg::Event::OnButtonClick)
+            .handler(AppWindow::on_import_mark_all_button)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.import_tables_clear_button)
+            .event(nwg::Event::OnButtonClick)
+            .handler(AppWindow::on_import_clear_button)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.import_tables_filter_button)
+            .event(nwg::Event::OnButtonClick)
+            .handler(AppWindow::on_import_filter_button)
+            .build(&mut self.events)?;
+
+        ui::event_builder()
+            .control(&c.import_tables_view)
+            .event(nwg::Event::OnListViewColumnClick)
+            .handler(AppWindow::on_import_tables_view_sort)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.import_tables_view)
+            .event(nwg::Event::OnListViewClick)
+            .handler(AppWindow::on_import_tables_view_click)
+            .build(&mut self.events)?;
+
+        ui::event_builder()
             .control(&c.import_dbnames_reload_button)
             .event(nwg::Event::OnButtonClick)
             .handler(AppWindow::open_load_dbnames_dialog)
@@ -117,7 +144,12 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
         ui::event_builder()
             .control(&c.import_file_button)
             .event(nwg::Event::OnButtonClick)
-            .handler(AppWindow::choose_import_file)
+            .handler(AppWindow::on_choose_import_file)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.import_run_button)
+            .event(nwg::Event::OnButtonClick)
+            .handler(AppWindow::open_import_dialog)
             .build(&mut self.events)?;
         ui::event_builder()
             .control(&c.import_close_button)
@@ -149,6 +181,11 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
             .control(&c.export_notice.notice)
             .event(nwg::Event::OnNotice)
             .handler(AppWindow::await_export_dialog)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.import_notice.notice)
+            .event(nwg::Event::OnNotice)
+            .handler(AppWindow::await_import_dialog)
             .build(&mut self.events)?;
 
         Ok(())

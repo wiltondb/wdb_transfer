@@ -29,13 +29,15 @@ pub struct AppWindow {
 
     conn_config: TdsConnConfig,
 
-    tables: Vec<TableWithRowsCount>,
+    export_tables: Vec<TableWithRowsCount>,
+    import_tables: Vec<TableWithSize>,
 
     about_dialog_join_handle: ui::PopupJoinHandle<()>,
     connect_dialog_join_handle: ui::PopupJoinHandle<ConnectDialogResult>,
     load_dbnames_dialog_join_handle: ui::PopupJoinHandle<LoadDbnamesDialogResult>,
     load_tables_dialog_join_handle: ui::PopupJoinHandle<LoadTablesDialogResult>,
     export_dialog_join_handle: ui::PopupJoinHandle<ExportDialogResult>,
+    import_dialog_join_handle: ui::PopupJoinHandle<ImportDialogResult>,
 }
 
 impl AppWindow {
@@ -45,8 +47,7 @@ impl AppWindow {
     }
 
     pub(super) fn init(&mut self) {
-        use chrono::{DateTime, Local};
-        self.conn_config.hostname = String::from("localhost");
+        self.conn_config.hostname = String::from("127.0.0.1");
         self.conn_config.port = 1433;
         self.conn_config.username = String::from("wilton");
         // todo: removeme
@@ -55,7 +56,7 @@ impl AppWindow {
         self.conn_config.accept_invalid_tls = true;
 
         self.set_status_bar_dbconn_label("none");
-        let date = Local::now().format("%Y%m%d");
+        let date = chrono::Local::now().format("%Y%m%d");
         self.c.export_filename_input.set_text(&format!("bcp_export_{}.zip", date));
         self.open_connect_dialog(nwg::EventData::NoData);
     }
@@ -124,13 +125,14 @@ impl AppWindow {
     pub(super) fn await_load_tables_dialog(&mut self, _: nwg::EventData) {
         self.c.window.set_enabled(true);
         self.c.load_tables_notice.receive();
-        let mut res = self.load_tables_dialog_join_handle.join();
-        self.tables = Vec::new();
+        let res = self.load_tables_dialog_join_handle.join();
+        self.export_tables = Vec::new();
         if res.success {
-            self.tables = res.tables;
-            self.sort_tables_by_schema_and_name();
+            self.export_tables = res.tables;
+            self.sort_export_tables(2, false);
+            self.sort_export_tables(1, false);
         }
-        self.reload_tables_view();
+        self.reload_export_tables_view();
     }
 
     pub(super) fn open_export_dialog(&mut self, _: nwg::EventData) {
@@ -138,7 +140,7 @@ impl AppWindow {
             Some(name) => name,
             None => return
         };
-        let tables: Vec<TableWithRowsCount> = self.tables.iter()
+        let tables: Vec<TableWithRowsCount> = self.export_tables.iter()
             .filter(|t| t.export)
             .map(|t| t.clone())
             .collect();
@@ -161,8 +163,40 @@ impl AppWindow {
 
     pub(super) fn await_export_dialog(&mut self, _: nwg::EventData) {
         self.c.window.set_enabled(true);
-        self.c.export_notice.receive();
-        let _ = self.export_dialog_join_handle.join();
+        self.c.import_notice.receive();
+        let _ = self.import_dialog_join_handle.join();
+    }
+
+    pub(super) fn open_import_dialog(&mut self, _: nwg::EventData) {
+        let dbname = match self.c.import_dbnames_combo.selection_string() {
+            Some(name) => name,
+            None => return
+        };
+        let tables: Vec<TableWithSize> = self.import_tables.iter()
+            .filter(|t| t.import)
+            .map(|t| t.clone())
+            .collect();
+        let file_path_st = self.c.import_file_input.text();
+        let file_path = Path::new(&file_path_st);
+        let dir_path = file_path.with_extension("");
+        let dir_path_st = dir_path.to_string_lossy().to_string();
+        let mut go_on = true;
+        if dir_path.exists() {
+            go_on = ui::message_box_warning_yn(&format!(
+                "Import directory already exists:\r\n{}\r\n\r\nWould you like to overwrite it?", dir_path_st));
+        }
+        if go_on {
+            self.c.window.set_enabled(false);
+            let args = ImportDialogArgs::new(
+                &self.c.import_notice, &self.conn_config,  &dbname, &tables, &file_path_st, &dir_path_st);
+            self.import_dialog_join_handle = ImportDialog::popup(args);
+        }
+    }
+
+    pub(super) fn await_import_dialog(&mut self, _: nwg::EventData) {
+        self.c.window.set_enabled(true);
+        self.c.import_notice.receive();
+        let _ = self.import_dialog_join_handle.join();
     }
 
     pub(super) fn open_website(&mut self, _: nwg::EventData) {
@@ -178,7 +212,7 @@ impl AppWindow {
     }
 
     pub(super) fn on_export_dbname_changed(&mut self, _: nwg::EventData) {
-        if let Some(name) = &self.c.export_dbnames_combo.selection_string() {
+        if let Some(_) = &self.c.export_dbnames_combo.selection_string() {
             self.open_load_tables_dialog(nwg::EventData::NoData);
         }
     }
@@ -201,9 +235,9 @@ impl AppWindow {
             nwg::ListViewColumnSortArrow::Up => true,
             nwg::ListViewColumnSortArrow::Down => false
         };
-        self.sort_tables(col_idx, desc);
+        self.sort_export_tables(col_idx, desc);
         self.c.export_tables_view.set_column_sort_arrow(col_idx, Some(arrow));
-        self.reload_tables_view();
+        self.reload_export_tables_view();
     }
 
     pub(super) fn on_export_tables_view_click(&mut self, ed: nwg::EventData) {
@@ -222,10 +256,10 @@ impl AppWindow {
     }
 
     pub(super) fn on_export_filter_button(&mut self, _: nwg::EventData) {
-        self.reload_tables_view();
+        self.reload_export_tables_view();
     }
 
-    pub(super) fn choose_export_dest_dir(&mut self, _: nwg::EventData) {
+    pub(super) fn on_choose_export_dest_dir(&mut self, _: nwg::EventData) {
         if let Ok(dir) = std::env::current_dir() {
             if let Some(d) = dir.to_str() {
                 let _ = self.c.export_dest_dir_chooser.set_default_folder(d);
@@ -241,7 +275,7 @@ impl AppWindow {
         }
     }
 
-    pub(super) fn choose_import_file(&mut self, _: nwg::EventData) {
+    pub(super) fn on_choose_import_file(&mut self, _: nwg::EventData) {
         if let Ok(dir) = std::env::current_dir() {
             if let Some(d) = dir.to_str() {
                 let _ = self.c.import_file_chooser.set_default_folder(d);
@@ -256,6 +290,48 @@ impl AppWindow {
                 self.load_import_file_entries();
             }
         }
+    }
+
+    pub(super) fn on_import_tables_view_sort(&mut self, ed: nwg::EventData) {
+        let col_idx = if let nwg::EventData::OnListViewItemIndex
+        { column_index: col_idx, .. } = ed {
+            col_idx
+        } else {
+            return;
+        };
+        let old_arrow = self.c.import_tables_view
+            .column_sort_arrow(col_idx)
+            .expect("Sort not initialized");
+        let arrow = match old_arrow {
+            nwg::ListViewColumnSortArrow::Up => nwg::ListViewColumnSortArrow::Down,
+            nwg::ListViewColumnSortArrow::Down => nwg::ListViewColumnSortArrow::Up
+        };
+        let desc = match arrow {
+            nwg::ListViewColumnSortArrow::Up => true,
+            nwg::ListViewColumnSortArrow::Down => false
+        };
+        self.sort_import_tables(col_idx, desc);
+        self.c.import_tables_view.set_column_sort_arrow(col_idx, Some(arrow));
+        self.reload_import_tables_view();
+    }
+
+    pub(super) fn on_import_tables_view_click(&mut self, ed: nwg::EventData) {
+        if let nwg::EventData::OnListViewItemIndex
+        { row_index: row_idx, .. } = ed {
+            self.flip_import_flag(row_idx);
+        };
+    }
+
+    pub(super) fn on_import_mark_all_button(&mut self, _: nwg::EventData) {
+        self.set_all_import_flags(true);
+    }
+
+    pub(super) fn on_import_clear_button(&mut self, _: nwg::EventData) {
+        self.set_all_import_flags(false);
+    }
+
+    pub(super) fn on_import_filter_button(&mut self, _: nwg::EventData) {
+        self.reload_import_tables_view();
     }
 
     pub(super) fn on_resize(&mut self, _: nwg::EventData) {
@@ -294,7 +370,7 @@ impl AppWindow {
         }
     }
 
-    fn table_matches_filters(&self, rec: &TableWithRowsCount) -> bool {
+    fn export_table_matches_filters(&self, rec: &TableWithRowsCount) -> bool {
         let filter = self.c.export_tables_filter_input.text();
         if 0 == filter.len() {
             return true;
@@ -305,7 +381,7 @@ impl AppWindow {
         wildmatch::WildMatch::new(&filter).matches(&rec.table)
     }
 
-    fn reload_tables_view(&self) {
+    fn reload_export_tables_view(&self) {
         let tv = &self.c.export_tables_view;
         tv.set_redraw(false);
         loop {
@@ -315,8 +391,8 @@ impl AppWindow {
             }
         };
         let mut idx = 0 as i32;
-        for rec in &self.tables {
-            if self.table_matches_filters(rec) {
+        for rec in &self.export_tables {
+            if self.export_table_matches_filters(rec) {
                 tv.insert_item(nwg::InsertListViewItem {
                     index: Some(idx as i32),
                     column_index: 0,
@@ -347,25 +423,11 @@ impl AppWindow {
         tv.set_redraw(true);
     }
 
-    fn sort_tables_by_schema_and_name(&mut self) {
-        self.tables.sort_by(|a, b| {
-            let a_schema = a.schema.to_lowercase();
-            let b_schema = b.schema.to_lowercase();
-            if a_schema.gt(&b_schema) {
-                std::cmp::Ordering::Greater
-            } else if a_schema.lt(&b_schema) {
-                std::cmp::Ordering::Less
-            } else {
-                a.table.to_lowercase().cmp(&b.table.to_lowercase())
-            }
-        });
-    }
-
-    fn sort_tables(&mut self, col_idx: usize, desc: bool) {
+    fn sort_export_tables(&mut self, col_idx: usize, desc: bool) {
         if col_idx > 3 {
             return;
         }
-        self.tables.sort_by(|a, b| {
+        self.export_tables.sort_by(|a, b| {
             if 0 == col_idx {
                 if desc {
                     b.export.cmp(&a.export)
@@ -399,7 +461,7 @@ impl AppWindow {
     fn set_all_export_flags(&mut self, export: bool) {
         let tv = &self.c.export_tables_view;
         tv.set_redraw(false);
-        for rec in self.tables.iter_mut() {
+        for rec in self.export_tables.iter_mut() {
             rec.export = export
         };
         for row_idx in 0..tv.len() {
@@ -414,31 +476,31 @@ impl AppWindow {
     }
 
     fn flip_export_flag(&mut self, row_idx: usize) {
-        let export = match self.c.export_tables_view.item(row_idx, 0, 1<<16) {
-            Some(mut item) => "no" == item.text.to_lowercase(),
+        let tv = &self.c.export_tables_view;
+        let export = match tv.item(row_idx, 0, 1<<16) {
+            Some(item) => "no" == item.text.to_lowercase(),
             None => return
         };
-        let schema = match self.c.export_tables_view.item(row_idx, 1, 1<<16) {
+        let schema = match tv.item(row_idx, 1, 1<<16) {
             Some(item) => item.text,
             None => return
         };
-        let table = match self.c.export_tables_view.item(row_idx, 2, 1<<16) {
+        let table = match tv.item(row_idx, 2, 1<<16) {
             Some(item) => item.text,
             None => return
         };
-        for rec in self.tables.iter_mut() {
+        for rec in self.export_tables.iter_mut() {
             if schema == rec.schema && table == rec.table {
                 rec.export = export;
                 break;
             }
         };
-        self.c.export_tables_view.update_item(row_idx, nwg::InsertListViewItem {
+        tv.update_item(row_idx, nwg::InsertListViewItem {
             index: Some(row_idx as i32),
             column_index: 0,
             text: Some(if export { "YES".to_string() } else { "No".to_string() }),
             image: None
         });
-
     }
 
     fn load_import_file_entries(&mut self) {
@@ -458,16 +520,173 @@ impl AppWindow {
                 return;
             }
         };
-        let mut reader = BufReader::new(file);
-        let zip = match ZipArchive::new(reader) {
+        let reader = BufReader::new(file);
+        let mut zip = match ZipArchive::new(reader) {
             Ok(zip) => zip,
             Err(e) => {
                 ui::message_box_error(&format!("Error opening ZIP file, path: {}, message: {}", file_path, e.to_string()));
                 return;
             }
         };
-        for name in zip.file_names() {
-            println!("{}", name);
+        let mut tables: Vec<TableWithSize> = Vec::new();
+        for i in 0..zip.len() {
+            let entry = match zip.by_index(i) {
+                Ok(entry) => entry,
+                Err(e) => {
+                    ui::message_box_error(&format!("Error opening ZIP file, path: {}, message: {}", file_path, e.to_string()));
+                    return;
+                }
+            };
+            if entry.name().ends_with(".bcp.gz") {
+                let name_parts = entry.name().split("/").collect::<Vec<&str>>();
+                let name = name_parts[name_parts.len() - 1];
+                let tab = match TableWithSize::new(name, entry.size()) {
+                    Ok(tab) => tab,
+                    Err(e) => {
+                        ui::message_box_error(&format!("{}", e.to_string()));
+                        return;
+                    }
+                };
+                tables.push(tab);
+            }
         }
+        self.import_tables = tables;
+        self.sort_import_tables(2, false);
+        self.sort_import_tables(1, false);
+        self.reload_import_tables_view();
+    }
+
+    fn import_table_matches_filters(&self, rec: &TableWithSize) -> bool {
+        let filter = self.c.import_tables_filter_input.text();
+        if 0 == filter.len() {
+            return true;
+        }
+        if rec.table.starts_with(&filter) {
+            return true;
+        }
+        wildmatch::WildMatch::new(&filter).matches(&rec.table)
+    }
+
+    fn reload_import_tables_view(&self) {
+        use human_bytes::human_bytes;
+        let tv = &self.c.import_tables_view;
+        tv.set_redraw(false);
+        loop {
+            let removed = tv.remove_item(0);
+            if !removed {
+                break;
+            }
+        };
+        let mut idx = 0 as i32;
+        for rec in &self.import_tables {
+            if self.import_table_matches_filters(rec) {
+                tv.insert_item(nwg::InsertListViewItem {
+                    index: Some(idx as i32),
+                    column_index: 0,
+                    text: Some(if rec.import { "YES".to_string() } else { "No".to_string() }),
+                    image: None
+                });
+                tv.insert_item(nwg::InsertListViewItem {
+                    index: Some(idx as i32),
+                    column_index: 1,
+                    text: Some(rec.schema.clone()),
+                    image: None
+                });
+                tv.insert_item(nwg::InsertListViewItem {
+                    index: Some(idx as i32),
+                    column_index: 2,
+                    text: Some(rec.table.clone()),
+                    image: None
+                });
+                tv.insert_item(nwg::InsertListViewItem {
+                    index: Some(idx as i32),
+                    column_index: 3,
+                    text: Some(human_bytes(rec.size_bytes as f64)),
+                    image: None
+                });
+                idx += 1;
+            }
+        }
+        tv.set_redraw(true);
+    }
+
+    fn sort_import_tables(&mut self, col_idx: usize, desc: bool) {
+        if col_idx > 3 {
+            return;
+        }
+        self.import_tables.sort_by(|a, b| {
+            if 0 == col_idx {
+                if desc {
+                    b.import.cmp(&a.import)
+                } else {
+                    a.import.cmp(&b.import)
+                }
+            } else if 1 == col_idx {
+                if desc {
+                    b.schema.to_lowercase().cmp(&a.schema.to_lowercase())
+                } else {
+                    a.schema.to_lowercase().cmp(&b.schema.to_lowercase())
+                }
+            } else if 2 == col_idx {
+                if desc {
+                    b.table.to_lowercase().cmp(&a.table.to_lowercase())
+                } else {
+                    a.table.to_lowercase().cmp(&b.table.to_lowercase())
+                }
+            } else if 3 == col_idx {
+                if desc {
+                    b.size_bytes.cmp(&a.size_bytes)
+                } else {
+                    a.size_bytes.cmp(&b.size_bytes)
+                }
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        });
+    }
+
+    fn set_all_import_flags(&mut self, import: bool) {
+        let tv = &self.c.import_tables_view;
+        tv.set_redraw(false);
+        for rec in self.import_tables.iter_mut() {
+            rec.import = import;
+        };
+        for row_idx in 0..tv.len() {
+            self.c.import_tables_view.update_item(row_idx, nwg::InsertListViewItem {
+                index: Some(row_idx as i32),
+                column_index: 0,
+                text: Some(if import { "YES".to_string() } else { "No".to_string() }),
+                image: None
+            });
+        }
+        tv.set_redraw(true);
+    }
+
+    fn flip_import_flag(&mut self, row_idx: usize) {
+        let tv = &self.c.import_tables_view;
+        let import = match tv.item(row_idx, 0, 1<<16) {
+            Some(item) => "no" == item.text.to_lowercase(),
+            None => return
+        };
+        let schema = match tv.item(row_idx, 1, 1<<16) {
+            Some(item) => item.text,
+            None => return
+        };
+        let table = match tv.item(row_idx, 2, 1<<16) {
+            Some(item) => item.text,
+            None => return
+        };
+        for rec in self.import_tables.iter_mut() {
+            if schema == rec.schema && table == rec.table {
+                rec.import = import;
+                break;
+            }
+        };
+        tv.update_item(row_idx, nwg::InsertListViewItem {
+            index: Some(row_idx as i32),
+            column_index: 0,
+            text: Some(if import { "YES".to_string() } else { "No".to_string() }),
+            image: None
+        });
     }
 }

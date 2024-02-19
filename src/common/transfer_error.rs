@@ -59,3 +59,9 @@ impl From<tiberius::error::Error> for TransferError {
         Self::new(&value)
     }
 }
+
+impl From<zip::result::ZipError> for TransferError {
+    fn from(value: zip::result::ZipError) -> Self {
+        Self::new(&value)
+    }
+}

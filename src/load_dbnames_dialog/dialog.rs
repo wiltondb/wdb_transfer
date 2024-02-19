@@ -62,8 +62,8 @@ impl LoadDbnamesDialog {
         let runtime = conn_config.create_runtime()?;
         let mut client = conn_config.open_connection_default(&runtime)?;
         runtime.block_on(async {
-            let mut qr = tiberius::Query::new("select name from sys.databases");
-            let mut stream = qr.query(&mut client).await?;
+            let qr = tiberius::Query::new("select name from sys.databases");
+            let stream = qr.query(&mut client).await?;
             let rows = stream.into_first_result().await?;
             let mut res = Vec::new();
             for row in rows.iter() {
@@ -95,7 +95,7 @@ impl ui::PopupDialog<LoadDbnamesDialogArgs, LoadDbnamesDialogResult> for LoadDbn
         let join_handle = thread::spawn(move || {
             let start = Instant::now();
             let res = match LoadDbnamesDialog::load_dbnames_from_db(&cconf) {
-                Ok((dbnames)) => LoadDbnamesResult::success(dbnames),
+                Ok(dbnames) => LoadDbnamesResult::success(dbnames),
                 Err(e) => LoadDbnamesResult::failure(format!("{}", e))
             };
             let remaining = 1000 - start.elapsed().as_millis() as i64;

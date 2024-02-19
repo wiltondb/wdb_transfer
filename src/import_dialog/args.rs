@@ -15,34 +15,33 @@
  */
 
 use super::*;
-use crate::common::TableWithRowsCount;
 
 
 #[derive(Default, Clone)]
-pub struct ExportArgs {
+pub struct ImportArgs {
     pub(super) dbname: String,
-    pub(super) tables: Vec<TableWithRowsCount>,
-    pub(super) parent_dir: String,
-    pub(super) dest_filename: String,
+    pub(super) tables: Vec<TableWithSize>,
+    pub(super) import_file: String,
+    pub(super) work_dir: String,
 }
 
 #[derive(Default)]
-pub struct ExportDialogArgs {
+pub struct ImportDialogArgs {
     pub(super) notice_sender: ui::SyncNoticeSender,
     pub(super) conn_config: TdsConnConfig,
-    pub(super) export_args: ExportArgs,
+    pub(super) import_args: ImportArgs,
 }
 
-impl ExportDialogArgs {
-    pub fn new(notice: &ui::SyncNotice, conn_config: &TdsConnConfig, dbname: &str, tables: &Vec<TableWithRowsCount>, parent_dir: &str, dest_filename: &str) -> Self {
+impl ImportDialogArgs {
+    pub fn new(notice: &ui::SyncNotice, conn_config: &TdsConnConfig, dbname: &str, tables: &Vec<TableWithSize>, import_file: &str, work_dir: &str) -> Self {
         Self {
             notice_sender: notice.sender(),
             conn_config: conn_config.clone(),
-            export_args: ExportArgs {
+            import_args: ImportArgs {
                 dbname: dbname.to_string(),
                 tables: tables.clone(),
-                parent_dir: parent_dir.to_string(),
-                dest_filename: dest_filename.to_string()
+                import_file: import_file.to_string(),
+                work_dir: work_dir.to_string(),
             },
         }
     }
@@ -52,7 +51,7 @@ impl ExportDialogArgs {
     }
 }
 
-impl ui::PopupArgs for ExportDialogArgs {
+impl ui::PopupArgs for ImportDialogArgs {
     fn notify_parent(&self) {
         self.notice_sender.send()
     }

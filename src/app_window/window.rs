@@ -20,6 +20,7 @@ use std::process::Command;
 use std::process::Stdio;
 
 use super::*;
+use std::io::Read;
 
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
@@ -50,15 +51,18 @@ impl AppWindow {
         self.conn_config.hostname = String::from("127.0.0.1");
         self.conn_config.port = 1433;
         self.conn_config.username = String::from("wilton");
-        // todo: removeme
-        self.conn_config.password = String::from("wilton");
         self.conn_config.database = String::from("master");
         self.conn_config.accept_invalid_tls = true;
 
         self.set_status_bar_dbconn_label("none");
         let date = chrono::Local::now().format("%Y%m%d");
         self.c.export_filename_input.set_text(&format!("bcp_export_{}.zip", date));
-        self.open_connect_dialog(nwg::EventData::NoData);
+
+        if self.check_bcp_runnable() {
+            self.open_connect_dialog(nwg::EventData::NoData);
+        } else {
+            self.close(nwg::EventData::NoData);
+        }
     }
 
     pub(super) fn close(&mut self, _: nwg::EventData) {
@@ -89,8 +93,8 @@ impl AppWindow {
         self.c.connect_notice.receive();
         let res = self.connect_dialog_join_handle.join();
         if !res.cancelled {
-            self.set_dbnames(&res.dbnames);
             self.conn_config = res.conn_config;
+            self.set_dbnames(&res.dbnames);
             let sbar_label = format!(
                 "{}:{}", &self.conn_config.hostname, &self.conn_config.port);
             self.set_status_bar_dbconn_label(&sbar_label);
@@ -163,8 +167,8 @@ impl AppWindow {
 
     pub(super) fn await_export_dialog(&mut self, _: nwg::EventData) {
         self.c.window.set_enabled(true);
-        self.c.import_notice.receive();
-        let _ = self.import_dialog_join_handle.join();
+        self.c.export_notice.receive();
+        let _ = self.export_dialog_join_handle.join();
     }
 
     pub(super) fn open_import_dialog(&mut self, _: nwg::EventData) {
@@ -242,17 +246,47 @@ impl AppWindow {
 
     pub(super) fn on_export_tables_view_click(&mut self, ed: nwg::EventData) {
         if let nwg::EventData::OnListViewItemIndex
-        { row_index: row_idx, .. } = ed {
-            self.flip_export_flag(row_idx);
+        { row_index, column_index } = ed {
+            self.c.export_tables_copy_name_button.set_enabled(true);
+            if 0 == column_index {
+                self.flip_export_flag(row_index);
+                self.update_export_run_button_state();
+            }
         };
+    }
+
+    pub(super) fn on_export_tables_view_double_click(&mut self, ed: nwg::EventData) {
+        if let nwg::EventData::OnListViewItemIndex
+        { row_index, .. } = ed {
+            self.flip_export_flag(row_index);
+            self.update_export_run_button_state();
+        };
+    }
+
+    pub(super) fn on_export_tables_view_focus_lost(&mut self, _: nwg::EventData) {
+        self.c.export_tables_copy_name_button.set_enabled(false);
     }
 
     pub(super) fn on_export_mark_all_button(&mut self, _: nwg::EventData) {
         self.set_all_export_flags(true);
+        self.update_export_run_button_state();
     }
 
     pub(super) fn on_export_clear_button(&mut self, _: nwg::EventData) {
         self.set_all_export_flags(false);
+        self.update_export_run_button_state();
+    }
+
+    pub(super) fn on_export_copy_name_button(&mut self, _: nwg::EventData) {
+        use clipboard_win::formats;
+        use clipboard_win::set_clipboard;
+
+        let tv = &self.c.export_tables_view;
+        if let Some(row_idx) = tv.selected_item() {
+            if let Some(item) = tv.item(row_idx, 2, 1<<16) {
+                let _ = set_clipboard(formats::Unicode, &item.text);
+            }
+        }
     }
 
     pub(super) fn on_export_filter_button(&mut self, _: nwg::EventData) {
@@ -317,17 +351,47 @@ impl AppWindow {
 
     pub(super) fn on_import_tables_view_click(&mut self, ed: nwg::EventData) {
         if let nwg::EventData::OnListViewItemIndex
-        { row_index: row_idx, .. } = ed {
-            self.flip_import_flag(row_idx);
+        { row_index, column_index } = ed {
+            self.c.import_tables_copy_name_button.set_enabled(true);
+            if 0 == column_index {
+                self.flip_import_flag(row_index);
+                self.update_import_run_button_state();
+            }
         };
+    }
+
+    pub(super) fn on_import_tables_view_double_click(&mut self, ed: nwg::EventData) {
+        if let nwg::EventData::OnListViewItemIndex
+        { row_index, .. } = ed {
+            self.flip_import_flag(row_index);
+            self.update_import_run_button_state();
+        };
+    }
+
+    pub(super) fn on_import_tables_view_focus_lost(&mut self, _: nwg::EventData) {
+        self.c.import_tables_copy_name_button.set_enabled(false);
     }
 
     pub(super) fn on_import_mark_all_button(&mut self, _: nwg::EventData) {
         self.set_all_import_flags(true);
+        self.update_import_run_button_state();
     }
 
     pub(super) fn on_import_clear_button(&mut self, _: nwg::EventData) {
         self.set_all_import_flags(false);
+        self.update_import_run_button_state();
+    }
+
+    pub(super) fn on_import_copy_name_button(&mut self, _: nwg::EventData) {
+        use clipboard_win::formats;
+        use clipboard_win::set_clipboard;
+
+        let tv = &self.c.import_tables_view;
+        if let Some(row_idx) = tv.selected_item() {
+            if let Some(item) = tv.item(row_idx, 2, 1<<16) {
+                let _ = set_clipboard(formats::Unicode, &item.text);
+            }
+        }
     }
 
     pub(super) fn on_import_filter_button(&mut self, _: nwg::EventData) {
@@ -359,9 +423,7 @@ impl AppWindow {
         let count = dbnames.len();
         self.c.export_dbnames_combo.set_collection(dbnames.clone());
         if count > 0 {
-            //self.c.export_dbnames_combo.set_selection(Some(0));
-            // todo: removeme
-            self.c.export_dbnames_combo.set_selection(Some(count - 1));
+            self.c.export_dbnames_combo.set_selection(Some(0));
             self.on_export_dbname_changed(nwg::EventData::NoData);
         }
         self.c.import_dbnames_combo.set_collection(dbnames);
@@ -501,6 +563,11 @@ impl AppWindow {
             text: Some(if export { "YES".to_string() } else { "No".to_string() }),
             image: None
         });
+    }
+
+    fn update_export_run_button_state(&mut self) {
+        let can_run = self.export_tables.iter().any(|t| t.export);
+        self.c.export_run_button.set_enabled(can_run);
     }
 
     fn load_import_file_entries(&mut self) {
@@ -688,5 +755,42 @@ impl AppWindow {
             text: Some(if import { "YES".to_string() } else { "No".to_string() }),
             image: None
         });
+    }
+
+    fn update_import_run_button_state(&mut self) {
+        let can_run = self.import_tables.iter().any(|t| t.import);
+        self.c.import_run_button.set_enabled(can_run);
+    }
+
+    fn check_bcp_runnable(&mut self) -> bool {
+        let mut success = false;
+        let cmd = duct::cmd!(
+            "bcp.exe",
+            "-v"
+        )
+            .stdin_null()
+            .stderr_to_stdout()
+            .stdout_capture()
+            .before_spawn(|pcmd| {
+                // create no window
+                let _ = pcmd.creation_flags(0x08000000);
+                Ok(())
+            });
+        if let Ok(mut reader) = cmd.reader() {
+            let mut _output = String::new();
+            if let Ok(_) = reader.read_to_string(&mut _output) {
+                if let Ok(opt) = reader.try_wait() {
+                    if opt.is_some() {
+                        success = true;
+                    }
+                }
+            }
+        }
+        if !success {
+            let proceed = ui::message_box_warning_yn(&format!(
+                "BCP utility not found, please install it (including required dependencies) and add 'bcp.exe' to system PATH environment variable.\r\n\r\nWould you like to proceed?"));
+            return proceed;
+        }
+        true
     }
 }

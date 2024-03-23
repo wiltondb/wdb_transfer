@@ -94,6 +94,7 @@ impl LoadTablesDialog {
                     tb.name as table_name,
                     case
                         when pc.reltuples is null then cast(-1 as bigint)
+                        when pc.reltuples = -1 then cast(0 as bigint)
                         else cast(pc.reltuples as bigint)
                     end as row_count
                 from sys.tables as tb

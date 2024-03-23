@@ -115,7 +115,7 @@ impl ImportDialog {
             let mut writer = BufWriter::new(file);
             let entry = zip.by_name(&format!("{}/{}", &dirname, &bcp_gz_filename))?;
             let mut entry_buffered = BufReader::new(entry);
-            let copied = std::io::copy(&mut entry_buffered, &mut writer)?;
+            std::io::copy(&mut entry_buffered, &mut writer)?;
         }
 
         let format_filename = format!("{}.{}.xml", &table.schema, &table.table);
@@ -156,10 +156,10 @@ impl ImportDialog {
             format!("{}.{}.{}", dbname, &table.schema, &table.table),
             "in", &bcp_filename,
             "-S", format!("tcp:{},{}", &cc.hostname, &cc.port),
+            "-k",
             "-U", &cc.username,
             "-P", &cc.password,
-            "-f", &format_filename,
-            "-k"
+            "-f", &format_filename
         )
             .dir(work_dir)
             .stdin_null()

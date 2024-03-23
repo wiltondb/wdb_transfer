@@ -41,6 +41,7 @@ pub(super) struct AppWindowControls {
 
     pub(super) export_tables_mark_all_button: nwg::Button,
     pub(super) export_tables_clear_button: nwg::Button,
+    pub(super) export_tables_copy_name_button: nwg::Button,
     pub(super) export_tables_filter_input: nwg::TextInput,
     pub(super) export_tables_filter_button: nwg::Button,
     pub(super) export_tables_view: nwg::ListView,
@@ -58,6 +59,7 @@ pub(super) struct AppWindowControls {
 
     pub(super) import_tables_mark_all_button: nwg::Button,
     pub(super) import_tables_clear_button: nwg::Button,
+    pub(super) import_tables_copy_name_button: nwg::Button,
     pub(super) import_tables_filter_input: nwg::TextInput,
     pub(super) import_tables_filter_button: nwg::Button,
     pub(super) import_tables_view: nwg::ListView,
@@ -165,9 +167,15 @@ impl ui::Controls for AppWindowControls {
             .text("Clear all")
             .font(Some(&self.font_normal))
             .build(&mut self.export_tables_clear_button)?;
+        nwg::Button::builder()
+            .parent(&self.export_tab)
+            .text("Copy name")
+            .font(Some(&self.font_normal))
+            .enabled(false)
+            .build(&mut self.export_tables_copy_name_button)?;
         nwg::TextInput::builder()
             .parent(&self.export_tab)
-            .placeholder_text(Some("Table name with '*' and '?' wildcards"))
+            .placeholder_text(Some("Table name with '*' and '?'"))
             .font(Some(&self.font_normal))
             .build(&mut self.export_tables_filter_input)?;
         nwg::Button::builder()
@@ -183,6 +191,8 @@ impl ui::Controls for AppWindowControls {
             .item_count(10)
             .list_style(nwg::ListViewStyle::Detailed)
             .focus(true)
+            .flags(nwg::ListViewFlags::VISIBLE | nwg::ListViewFlags::TAB_STOP |
+                nwg::ListViewFlags::SINGLE_SELECTION | nwg::ListViewFlags::ALWAYS_SHOW_SELECTION)
             .ex_flags(nwg::ListViewExFlags::GRID | nwg::ListViewExFlags::FULL_ROW_SELECT)
             .build(&mut self.export_tables_view)?;
         self.export_tables_view.set_headers_enabled(true);
@@ -243,9 +253,7 @@ impl ui::Controls for AppWindowControls {
         nwg::TextInput::builder()
             .parent(&self.export_tab)
             .font(Some(&self.font_normal))
-            //.text(&std::env::var("USERPROFILE").unwrap_or(String::new()))
-            // todo
-            .text("C:\\tmp\\bcp1")
+            .text(&std::env::var("USERPROFILE").unwrap_or(String::new()))
             .build(&mut self.export_dest_dir_input)?;
         nwg::Button::builder()
             .parent(&self.export_tab)
@@ -274,6 +282,7 @@ impl ui::Controls for AppWindowControls {
             .parent(&self.export_tab)
             .text("Run data export")
             .font(Some(&self.font_normal))
+            .enabled(false)
             .build(&mut self.export_run_button)?;
         nwg::Button::builder()
             .parent(&self.export_tab)
@@ -293,9 +302,15 @@ impl ui::Controls for AppWindowControls {
             .text("Clear all")
             .font(Some(&self.font_normal))
             .build(&mut self.import_tables_clear_button)?;
+        nwg::Button::builder()
+            .parent(&self.import_tab)
+            .text("Copy name")
+            .font(Some(&self.font_normal))
+            .enabled(false)
+            .build(&mut self.import_tables_copy_name_button)?;
         nwg::TextInput::builder()
             .parent(&self.import_tab)
-            .placeholder_text(Some("Table name with '*' and '?' wildcards"))
+            .placeholder_text(Some("Table name with '*' and '?'"))
             .font(Some(&self.font_normal))
             .build(&mut self.import_tables_filter_input)?;
         nwg::Button::builder()
@@ -311,6 +326,8 @@ impl ui::Controls for AppWindowControls {
             .item_count(10)
             .list_style(nwg::ListViewStyle::Detailed)
             .focus(true)
+            .flags(nwg::ListViewFlags::VISIBLE | nwg::ListViewFlags::TAB_STOP |
+                nwg::ListViewFlags::SINGLE_SELECTION | nwg::ListViewFlags::ALWAYS_SHOW_SELECTION)
             .ex_flags(nwg::ListViewExFlags::GRID | nwg::ListViewExFlags::FULL_ROW_SELECT)
             .build(&mut self.import_tables_view)?;
         self.import_tables_view.set_headers_enabled(true);
@@ -389,6 +406,7 @@ impl ui::Controls for AppWindowControls {
             .parent(&self.import_tab)
             .text("Run data import")
             .font(Some(&self.font_normal))
+            .enabled(false)
             .build(&mut self.import_run_button)?;
         nwg::Button::builder()
             .parent(&self.import_tab)
@@ -431,6 +449,7 @@ impl ui::Controls for AppWindowControls {
         ui::tab_order_builder()
             .control(&self.export_tables_mark_all_button)
             .control(&self.export_tables_clear_button)
+            .control(&self.export_tables_copy_name_button)
             .control(&self.export_tables_filter_input)
             .control(&self.export_tables_filter_button)
             .control(&self.export_dbnames_combo)
@@ -445,6 +464,7 @@ impl ui::Controls for AppWindowControls {
         ui::tab_order_builder()
             .control(&self.import_tables_mark_all_button)
             .control(&self.import_tables_clear_button)
+            .control(&self.import_tables_copy_name_button)
             .control(&self.import_tables_filter_input)
             .control(&self.import_tables_filter_button)
             .control(&self.import_dbnames_combo)

@@ -27,6 +27,7 @@ use std::time;
 
 use flate2::write::GzEncoder;
 use flate2::Compression;
+use regex::Regex;
 
 use super::*;
 
@@ -100,6 +101,38 @@ impl ExportDialog {
         }
     }
 
+    fn strip_collation_from_format_file(dest_dir: &str, format_filename: &str) -> Result<(), io::Error> {
+        let format_path = Path::new(dest_dir).join(&format_filename);
+        let bytes = match fs::read(&format_path) {
+            Ok(bytes) => bytes,
+            Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!(
+                "Format file post-processing error: {}", e)))
+        };
+        let codepoints: Vec<u16> = bytes
+            .chunks_exact(2)
+            .into_iter()
+            .map(|a| u16::from_le_bytes([a[0], a[1]]))
+            .collect();
+        let text = match String::from_utf16(&codepoints) {
+            Ok(text) => text,
+            Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!(
+                "Format file post-processing error: {}", e)))
+        };
+        let re = match Regex::new("(?i)\\sCOLLATION=\"\\w+\"") {
+            Ok(re) => re,
+            Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!(
+                "Format file post-processing error: {}", e)))
+        };
+        let replaced = re.replace_all(&text, " COLLATION=\"\"").to_string();
+        match fs::write(&format_path, replaced) {
+            Ok(_) => { },
+            Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!(
+                "Format file post-processing error: {}", e)))
+        };
+
+        Ok(())
+    }
+
     fn run_bcp_format(progress: &ui::SyncNoticeValueSender<String>, cc: &TdsConnConfig, dest_dir: &str,
                dbname: &str, schema: &str, table: &str) -> Result<String, io::Error> {
         progress.send_value(format!("Creating bcp format file: {}.{}", schema, table));
@@ -111,6 +144,7 @@ impl ExportDialog {
             "-f", &format_filename,
             "-x",
             "-n",
+            "-k",
             "-S", format!("{},{}", &cc.hostname, &cc.port),
             "-U", &cc.username,
             "-P", &cc.password
@@ -146,6 +180,8 @@ impl ExportDialog {
                 "bcp process failure: {}", e)))
         }
 
+        Self::strip_collation_from_format_file(dest_dir, &format_filename)?;
+
         Ok(format_filename)
     }
 
@@ -159,6 +195,7 @@ impl ExportDialog {
             "out", &data_filename,
             "-f", &format_filename,
             "-S", format!("tcp:{},{}", &cc.hostname, &cc.port),
+            "-k",
             "-U", &cc.username,
             "-P", &cc.password
         )
@@ -244,7 +281,7 @@ impl ExportDialog {
         let listener = |en: &str| {
             progress.send_value(en);
         };
-        if let Err(e) = zip_directory(dest_dir_st, dest_file_st, 0, &listener) {
+        if let Err(e) = zip_recurse::zip_directory_listen(dest_dir_st, dest_file_st, 0, listener) {
             return Err(io::Error::new(io::ErrorKind::Other, e.to_string()))
         };
         std::fs::remove_dir_all(dest_dir_path)?;

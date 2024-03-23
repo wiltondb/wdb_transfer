@@ -67,6 +67,11 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
             .handler(AppWindow::on_export_clear_button)
             .build(&mut self.events)?;
         ui::event_builder()
+            .control(&c.export_tables_copy_name_button)
+            .event(nwg::Event::OnButtonClick)
+            .handler(AppWindow::on_export_copy_name_button)
+            .build(&mut self.events)?;
+        ui::event_builder()
             .control(&c.export_tables_filter_button)
             .event(nwg::Event::OnButtonClick)
             .handler(AppWindow::on_export_filter_button)
@@ -81,6 +86,16 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
             .control(&c.export_tables_view)
             .event(nwg::Event::OnListViewClick)
             .handler(AppWindow::on_export_tables_view_click)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.export_tables_view)
+            .event(nwg::Event::OnListViewDoubleClick)
+            .handler(AppWindow::on_export_tables_view_double_click)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.export_tables_view)
+            .event(nwg::Event::OnListViewFocusLost)
+            .handler(AppWindow::on_export_tables_view_focus_lost)
             .build(&mut self.events)?;
 
         ui::event_builder()
@@ -120,6 +135,11 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
             .handler(AppWindow::on_import_clear_button)
             .build(&mut self.events)?;
         ui::event_builder()
+            .control(&c.import_tables_copy_name_button)
+            .event(nwg::Event::OnButtonClick)
+            .handler(AppWindow::on_import_copy_name_button)
+            .build(&mut self.events)?;
+        ui::event_builder()
             .control(&c.import_tables_filter_button)
             .event(nwg::Event::OnButtonClick)
             .handler(AppWindow::on_import_filter_button)
@@ -134,6 +154,16 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
             .control(&c.import_tables_view)
             .event(nwg::Event::OnListViewClick)
             .handler(AppWindow::on_import_tables_view_click)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.import_tables_view)
+            .event(nwg::Event::OnListViewDoubleClick)
+            .handler(AppWindow::on_import_tables_view_double_click)
+            .build(&mut self.events)?;
+        ui::event_builder()
+            .control(&c.import_tables_view)
+            .event(nwg::Event::OnListViewFocusLost)
+            .handler(AppWindow::on_import_tables_view_focus_lost)
             .build(&mut self.events)?;
 
         ui::event_builder()

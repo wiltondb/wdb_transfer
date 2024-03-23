@@ -133,8 +133,6 @@ impl ui::PopupDialog<ConnectDialogArgs, ConnectDialogResult> for ConnectDialog {
         self.config_to_input(&self.args.conn_config);
         self.result = ConnectDialogResult::cancelled();
         ui::shake_window(&self.c.window);
-        // todo: removeme
-        self.open_load_dialog(nwg::EventData::NoData);
     }
 
     fn result(&mut self) -> ConnectDialogResult {

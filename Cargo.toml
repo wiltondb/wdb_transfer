@@ -1,6 +1,6 @@
 [package]
 name = "wdb_transfer"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["alex@wiltondb.com"]
 edition = "2018"
 
@@ -23,4 +23,4 @@ tokio-util = { version = "0.7", features = ["compat"] }
 wildmatch = "2.1.1"
 winapi = { version = "0.3", features = ["winuser"] }
 zip = { version = "0.6.6", default-features = false, features = ["deflate-zlib"] }
-zip_recurse = "1.0.0"
+zip_recurse = "1.0.1"

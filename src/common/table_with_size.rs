@@ -27,7 +27,7 @@ pub struct TableWithSize {
 impl TableWithSize {
     pub fn new(zip_entry_name: &str, size_bytes: u64) -> Result<Self, TransferError> {
         let parts = zip_entry_name.split(".").collect::<Vec<&str>>();
-        if !(4 == parts.len() && "bcp" == parts[2] && "gz" == parts[3]) {
+        if !(4 == parts.len() && "bcp" == parts[2] && ("gz" == parts[3] || "zstd" == parts[3])) {
             return Err(TransferError::from_string(format!(
                 "Unexpected ZIP entry name: {}", zip_entry_name)));
         }

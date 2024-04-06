@@ -55,8 +55,6 @@ impl AppWindow {
         self.conn_config.accept_invalid_tls = true;
 
         self.set_status_bar_dbconn_label("none");
-        let date = chrono::Local::now().format("%Y%m%d");
-        self.c.export_filename_input.set_text(&format!("bcp_export_{}.zip", date));
 
         if self.check_bcp_runnable() {
             self.open_connect_dialog(nwg::EventData::NoData);
@@ -137,6 +135,11 @@ impl AppWindow {
             self.sort_export_tables(1, false);
         }
         self.reload_export_tables_view();
+        self.update_export_run_button_state();
+        if let Some(dbname) = &self.c.export_dbnames_combo.selection_string() {
+            let date = chrono::Local::now().format("%Y%m%d");
+            self.c.export_filename_input.set_text(&format!("{}_bcp_{}.zip", dbname, date));
+        }
     }
 
     pub(super) fn open_export_dialog(&mut self, _: nwg::EventData) {
@@ -168,7 +171,11 @@ impl AppWindow {
     pub(super) fn await_export_dialog(&mut self, _: nwg::EventData) {
         self.c.window.set_enabled(true);
         self.c.export_notice.receive();
-        let _ = self.export_dialog_join_handle.join();
+        let res = self.export_dialog_join_handle.join();
+        if res.success {
+            self.set_all_export_flags(false);
+            self.update_export_run_button_state();
+        }
     }
 
     pub(super) fn open_import_dialog(&mut self, _: nwg::EventData) {
@@ -200,7 +207,11 @@ impl AppWindow {
     pub(super) fn await_import_dialog(&mut self, _: nwg::EventData) {
         self.c.window.set_enabled(true);
         self.c.import_notice.receive();
-        let _ = self.import_dialog_join_handle.join();
+        let res = self.import_dialog_join_handle.join();
+        if res.success {
+            self.set_all_import_flags(false);
+            self.update_import_run_button_state();
+        }
     }
 
     pub(super) fn open_website(&mut self, _: nwg::EventData) {
@@ -322,6 +333,7 @@ impl AppWindow {
                 let fpath_st = file.to_string_lossy().to_string();
                 self.c.import_file_input.set_text(&fpath_st);
                 self.load_import_file_entries();
+                self.update_import_run_button_state();
             }
         }
     }
@@ -604,7 +616,7 @@ impl AppWindow {
                     return;
                 }
             };
-            if entry.name().ends_with(".bcp.gz") {
+            if entry.name().ends_with(".bcp.gz") || entry.name().ends_with(".bcp.zstd") {
                 let name_parts = entry.name().split("/").collect::<Vec<&str>>();
                 let name = name_parts[name_parts.len() - 1];
                 let tab = match TableWithSize::new(name, entry.size()) {

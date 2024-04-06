@@ -25,8 +25,6 @@ use std::os::windows::process::CommandExt;
 use std::path::Path;
 use std::time;
 
-use flate2::write::GzEncoder;
-use flate2::Compression;
 use regex::Regex;
 
 use super::*;
@@ -145,6 +143,7 @@ impl ExportDialog {
             "-x",
             "-n",
             "-k",
+            "-K", "ReadOnly",
             "-S", format!("{},{}", &cc.hostname, &cc.port),
             "-U", &cc.username,
             "-P", &cc.password
@@ -196,6 +195,7 @@ impl ExportDialog {
             "-f", &format_filename,
             "-S", format!("tcp:{},{}", &cc.hostname, &cc.port),
             "-k",
+            "-K", "ReadOnly",
             "-U", &cc.username,
             "-P", &cc.password
         )
@@ -234,18 +234,20 @@ impl ExportDialog {
     }
 
     fn compress_bcp_file(progress: &ui::SyncNoticeValueSender<String>, dest_dir: &str,
-                    data_filename: &str, compression: u32) -> Result<String, io::Error> {
+                    data_filename: &str) -> Result<String, io::Error> {
         progress.send_value(format!("Compressing: {}", data_filename));
         progress.send_value("");
-        let compressed_filename = format!("{}.gz", data_filename);
+        let compressed_filename = format!("{}.zstd", data_filename);
         let src_file_path = Path::new(dest_dir).join(data_filename);
         let dest_file_path = Path::new(dest_dir).join(&compressed_filename);
         {
             let src_file = File::open(&src_file_path)?;
             let dest_file = File::create(&dest_file_path)?;
             let mut reader = BufReader::new(src_file);
-            let mut writer = GzEncoder::new(BufWriter::new(dest_file), Compression::new(compression));
+            let mut writer = zstd::stream::Encoder::new(BufWriter::new(dest_file), 1)?;
+            let _ = writer.multithread(3);
             std::io::copy(&mut reader, &mut writer)?;
+            let _ = writer.finish()?;
         }
         fs::remove_file(&src_file_path)?;
         Ok(compressed_filename)
@@ -255,7 +257,7 @@ impl ExportDialog {
         for table in eargs.tables.iter() {
             let format_filename = Self::run_bcp_format(progress, cc, dest_dir, &eargs.dbname, &table.schema, &table.table)?;
             let data_filename = Self::run_bcp_data(progress, cc, dest_dir, &eargs.dbname, &table.schema, &table.table, &format_filename)?;
-            let _ = Self::compress_bcp_file(&progress, &dest_dir, &data_filename, 6)?;
+            let _ = Self::compress_bcp_file(&progress, &dest_dir, &data_filename)?;
         }
         Ok(())
     }

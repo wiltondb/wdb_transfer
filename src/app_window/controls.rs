@@ -356,7 +356,7 @@ impl ui::Controls for AppWindowControls {
             index: Some(3),
             fmt: Some(nwg::ListViewColumnFlags::LEFT),
             width: Some(80),
-            text: Some("Size".to_string())
+            text: Some("Size comp.".to_string())
         });
         self.import_tables_view.set_column_sort_arrow(3, Some(nwg::ListViewColumnSortArrow::Down));
 

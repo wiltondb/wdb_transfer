@@ -102,20 +102,43 @@ impl ImportDialog {
 
     fn unzip_table_files(progress: &ui::SyncNoticeValueSender<String>, table: &TableWithSize, import_file: &str, work_dir: &Path) -> Result<(PathBuf, PathBuf), TransferError> {
         let import_file_path = Path::new(import_file);
-        let dirname = work_dir.file_name().ok_or(
-            TransferError::from_str("Dirname error"))?.to_string_lossy().to_string();
-        let bcp_gz_filename = format!("{}.{}.bcp.gz", &table.schema, &table.table);
-        progress.send_value(format!("Unpacking {} into directory {}", &bcp_gz_filename, work_dir.to_string_lossy().to_string()));
+        let bcp_filename = format!("{}.{}.bcp", &table.schema, &table.table);
+        progress.send_value(format!("Unpacking {} into directory {}", &bcp_filename, work_dir.to_string_lossy().to_string()));
         let zip_file = File::open(import_file_path)?;
         let zip_reader = BufReader::new(zip_file);
         let mut zip =  ZipArchive::new(zip_reader)?;
-        let bcp_gz_file = work_dir.join(&bcp_gz_filename);
+        let dirname: String = match zip.file_names().find(|nm| nm.ends_with("/")) {
+            Some(dirname) => dirname.chars().take(dirname.len() - 1).collect(),
+            None => return Err(TransferError::from_str("Directory entry not found in ZIP file"))
+        };
+        let bcp_gz_file = work_dir.join(&bcp_filename);
         {
             let file = File::create(&bcp_gz_file)?;
             let mut writer = BufWriter::new(file);
-            let entry = zip.by_name(&format!("{}/{}", &dirname, &bcp_gz_filename))?;
-            let mut entry_buffered = BufReader::new(entry);
-            std::io::copy(&mut entry_buffered, &mut writer)?;
+            let entry_name_base = format!("{}/{}", &dirname, &bcp_filename);
+            let entry_name_gz = format!("{}.gz", &entry_name_base);
+            let entry_name_zstd = format!("{}.zstd", &entry_name_base);
+            let entry_res = zip.by_name(&entry_name_zstd);
+            let entry = match entry_res {
+                Ok(entry) => entry,
+                Err(_) => {
+                    std::mem::drop(entry_res);
+                    match zip.by_name(&entry_name_gz) {
+                        Ok(entry) => entry,
+                        Err(_) => return Err(TransferError::from_string(
+                            format!("Table data entry not found in ZIP file, name: {} or {}", entry_name_zstd, entry_name_gz)))
+                    }
+                }
+            };
+            let entry_name = entry.name().to_string();
+            let entry_buffered = BufReader::new(entry);
+            if entry_name.ends_with(".zstd") {
+                let mut entry_decomp = BufReader::new(zstd::Decoder::new(entry_buffered)?);
+                std::io::copy(&mut entry_decomp, &mut writer)?;
+            } else {
+                let mut entry_decomp = BufReader::new(GzDecoder::new(entry_buffered));
+                std::io::copy(&mut entry_decomp, &mut writer)?;
+            };
         }
 
         let format_filename = format!("{}.{}.xml", &table.schema, &table.table);
@@ -128,20 +151,6 @@ impl ImportDialog {
             std::io::copy(&mut entry_buffered, &mut writer)?;
         }
         Ok((bcp_gz_file, format_file))
-    }
-
-    fn decompress_bcp_file(progress: &ui::SyncNoticeValueSender<String>, bcp_gz_file: &Path, work_dir: &Path) -> Result<PathBuf, TransferError> {
-        let filename = bcp_gz_file.with_extension("").file_name().ok_or(
-            TransferError::from_str("Filename error"))?.to_string_lossy().to_string();
-        progress.send_value(format!("Decompressing: {}", &filename));
-        let bcp_file = work_dir.join(filename);
-        let src_file = File::open(&bcp_gz_file)?;
-        let mut reader = BufReader::new(GzDecoder::new(BufReader::new(&src_file)));
-        let dest_file = File::create(&bcp_file)?;
-        let mut writer = BufWriter::new(dest_file);
-        std::io::copy(&mut reader, &mut writer)?;
-
-        Ok(bcp_file)
     }
 
     fn run_bcp(progress: &ui::SyncNoticeValueSender<String>, cc: &TdsConnConfig, dbname: &str,
@@ -157,6 +166,8 @@ impl ImportDialog {
             "in", &bcp_filename,
             "-S", format!("tcp:{},{}", &cc.hostname, &cc.port),
             "-k",
+            "-E",
+            "-m", "1",
             "-U", &cc.username,
             "-P", &cc.password,
             "-f", &format_filename
@@ -197,8 +208,7 @@ impl ImportDialog {
 
     fn import_tables(progress: &ui::SyncNoticeValueSender<String>, cc: &TdsConnConfig, iargs: &ImportArgs, work_dir: &Path) -> Result<(), TransferError> {
         for table in iargs.tables.iter() {
-            let (bcp_gz_file, format_file) = Self::unzip_table_files(progress, &table, &iargs.import_file, work_dir)?;
-            let bcp_file = Self::decompress_bcp_file(progress, &bcp_gz_file, work_dir)?;
+            let (bcp_file, format_file) = Self::unzip_table_files(progress, &table, &iargs.import_file, work_dir)?;
             Self::run_bcp(progress, cc, &iargs.dbname, &table, &bcp_file, &format_file, work_dir)?;
         }
         Ok(())

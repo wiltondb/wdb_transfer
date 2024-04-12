@@ -186,12 +186,22 @@ impl ImportDialog {
             Err(e) => return Err(TransferError::from_string(format!(
                 "bcp process spawn failure: {}", e)))
         };
-        for line in BufReader::new(&reader).lines() {
-            match line {
-                Ok(ln) => progress.send_value(ln),
+        let mut buf_reader = BufReader::new(&reader);
+        loop {
+            let mut buf = vec!();
+            match buf_reader.read_until(b'\n', &mut buf) {
+                Ok(len) => {
+                    if 0 == len {
+                        break;
+                    }
+                    if buf.len() >= 2 {
+                        let ln = String::from_utf8_lossy(&buf[0..buf.len() - 2]);
+                        progress.send_value(ln);
+                    }
+                },
                 Err(e) => return Err(TransferError::from_string(format!(
                     "bcp process failure: {}", e)))
-            }
+            };
         };
         match reader.try_wait() {
             Ok(opt) => match opt {

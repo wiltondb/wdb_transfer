@@ -162,7 +162,7 @@ impl ImportDialog {
         progress.send_value(format!("Importing file: {}", bcp_filename));
         let cmd = duct::cmd!(
             "bcp.exe",
-            format!("{}.{}.{}", dbname, &table.schema, &table.table),
+            format!("[{}].[{}].[{}]", dbname, &table.schema, &table.table),
             "in", &bcp_filename,
             "-S", format!("tcp:{},{}", &cc.hostname, &cc.port),
             "-k",

@@ -137,7 +137,7 @@ impl ExportDialog {
         let format_filename = format!("{}.{}.xml", schema, table);
         let cmd = duct::cmd!(
             "bcp.exe",
-            format!("{}.{}.{}", dbname, schema, table),
+            format!("[{}].[{}].[{}]", dbname, schema, table),
             "format", "nul",
             "-f", &format_filename,
             "-x",
@@ -200,7 +200,7 @@ impl ExportDialog {
         let data_filename = format!("{}.{}.bcp", schema, table);
         let cmd = duct::cmd!(
             "bcp.exe",
-            format!("{}.{}.{}", dbname, schema, table),
+            format!("[{}].[{}].[{}]", dbname, schema, table),
             "out", &data_filename,
             "-f", &format_filename,
             "-S", format!("tcp:{},{}", &cc.hostname, &cc.port),

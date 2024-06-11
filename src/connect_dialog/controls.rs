@@ -36,6 +36,9 @@ pub(super) struct ConnectDialogControls {
     pub(super) database_label: nwg::Label,
     pub(super) database_input: nwg::TextInput,
     pub(super) accept_invalid_tls_checkbox: nwg::CheckBox,
+    pub(super) use_win_auth_checkbox: nwg::CheckBox,
+    pub(super) instance_label: nwg::Label,
+    pub(super) instance_input: nwg::TextInput,
 
     pub(super) test_button: nwg::Button,
     pub(super) load_button: nwg::Button,
@@ -61,7 +64,7 @@ impl ui::Controls for ConnectDialogControls {
             .build(&mut self.icon)?;
 
         nwg::Window::builder()
-            .size((480, 240))
+            .size((480, 300))
             .icon(Some(&self.icon))
             .center(true)
             .title("DB Connection")
@@ -125,6 +128,23 @@ impl ui::Controls for ConnectDialogControls {
             .font(Some(&self.font_normal))
             .parent(&self.window)
             .build(&mut self.accept_invalid_tls_checkbox)?;
+        nwg::CheckBox::builder()
+            .check_state(nwg::CheckBoxState::Unchecked)
+            .text("Use Windows Authentication")
+            .font(Some(&self.font_normal))
+            .parent(&self.window)
+            .build(&mut self.use_win_auth_checkbox)?;
+        nwg::Label::builder()
+            .text("Instance:")
+            .font(Some(&self.font_normal))
+            .h_align(nwg::HTextAlign::Left)
+            .parent(&self.window)
+            .build(&mut self.instance_label)?;
+        nwg::TextInput::builder()
+            .readonly(true)
+            .font(Some(&self.font_normal))
+            .parent(&self.window)
+            .build(&mut self.instance_input)?;
 
         nwg::Button::builder()
             .text("Test connection")
@@ -162,6 +182,8 @@ impl ui::Controls for ConnectDialogControls {
             .control(&self.password_input)
             .control(&self.database_input)
             .control(&self.accept_invalid_tls_checkbox)
+            .control(&self.use_win_auth_checkbox)
+            .control(&self.instance_input)
             .control(&self.test_button)
             .control(&self.load_button)
             .control(&self.cancel_button)

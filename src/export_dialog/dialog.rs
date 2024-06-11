@@ -135,19 +135,30 @@ impl ExportDialog {
                dbname: &str, schema: &str, table: &str) -> Result<String, io::Error> {
         progress.send_value(format!("Creating bcp format file: {}.{}", schema, table));
         let format_filename = format!("{}.{}.xml", schema, table);
-        let cmd = duct::cmd!(
-            "bcp.exe",
+        let mut args: Vec<String> = vec!(
             format!("[{}].[{}].[{}]", dbname, schema, table),
-            "format", "nul",
-            "-f", &format_filename,
-            "-x",
-            "-n",
-            "-k",
-            "-K", "ReadOnly",
-            "-S", format!("{},{}", &cc.hostname, &cc.port),
-            "-U", &cc.username,
-            "-P", &cc.password
-        )
+            "format".to_string(),
+            "nul".to_string(),
+            "-f".to_string(),
+            format_filename.clone(),
+            "-x".to_string(),
+            "-n".to_string(),
+            "-k".to_string(),
+            "-K".to_string(),
+            "ReadOnly".to_string(),
+            "-S".to_string(),
+        );
+        if cc.use_win_auth {
+            args.push(format!("{}\\{}", &cc.hostname, &cc.instance));
+            args.push("-T".to_string());
+        } else {
+            args.push(format!("tcp:{},{}", &cc.hostname, &cc.port));
+            args.push("-U".to_string());
+            args.push(cc.username.clone());
+            args.push("-P".to_string());
+            args.push(cc.password.clone());
+        }
+        let cmd = duct::cmd("bcp.exe", args)
             .dir(dest_dir)
             .stdin_null()
             .stderr_to_stdout()
@@ -198,17 +209,28 @@ impl ExportDialog {
                       dbname: &str, schema: &str, table: &str, format_filename: &str) -> Result<String, io::Error> {
         progress.send_value(format!("Exporting data: {}.{}", schema, table));
         let data_filename = format!("{}.{}.bcp", schema, table);
-        let cmd = duct::cmd!(
-            "bcp.exe",
+        let mut args: Vec<String> = vec!(
             format!("[{}].[{}].[{}]", dbname, schema, table),
-            "out", &data_filename,
-            "-f", &format_filename,
-            "-S", format!("tcp:{},{}", &cc.hostname, &cc.port),
-            "-k",
-            "-K", "ReadOnly",
-            "-U", &cc.username,
-            "-P", &cc.password
-        )
+            "out".to_string(),
+            data_filename.clone(),
+            "-f".to_string(),
+            format_filename.to_string(),
+            "-k".to_string(),
+            "-K".to_string(),
+            "ReadOnly".to_string(),
+            "-S".to_string(),
+        );
+        if cc.use_win_auth {
+            args.push(format!("{}\\{}", &cc.hostname, &cc.instance));
+            args.push("-T".to_string());
+        } else {
+            args.push(format!("tcp:{},{}", &cc.hostname, &cc.port));
+            args.push("-U".to_string());
+            args.push(cc.username.clone());
+            args.push("-P".to_string());
+            args.push(cc.password.clone());
+        }
+        let cmd = duct::cmd("bcp.exe", args)
             .dir(dest_dir)
             .stdin_null()
             .stderr_to_stdout()

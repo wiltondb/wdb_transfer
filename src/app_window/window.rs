@@ -53,6 +53,8 @@ impl AppWindow {
         self.conn_config.username = String::from("wilton");
         self.conn_config.database = String::from("master");
         self.conn_config.accept_invalid_tls = true;
+        self.conn_config.use_win_auth = false;
+        self.conn_config.instance = String::from("SQLEXPRESS");
 
         self.set_status_bar_dbconn_label("none");
 

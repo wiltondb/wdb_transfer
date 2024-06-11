@@ -160,18 +160,29 @@ impl ImportDialog {
         let format_filename = format_file.file_name().ok_or(
             TransferError::from_str("Filename error"))?.to_string_lossy().to_string();
         progress.send_value(format!("Importing file: {}", bcp_filename));
-        let cmd = duct::cmd!(
-            "bcp.exe",
+        let mut args: Vec<String> = vec!(
             format!("[{}].[{}].[{}]", dbname, &table.schema, &table.table),
-            "in", &bcp_filename,
-            "-S", format!("tcp:{},{}", &cc.hostname, &cc.port),
-            "-k",
-            "-E",
-            "-m", "1",
-            "-U", &cc.username,
-            "-P", &cc.password,
-            "-f", &format_filename
-        )
+            "in".to_string(),
+            bcp_filename.clone(),
+            "-f".to_string(),
+            format_filename.clone(),
+            "-k".to_string(),
+            "-E".to_string(),
+            "-m".to_string(),
+            "1".to_string(),
+            "-S".to_string(),
+        );
+        if cc.use_win_auth {
+            args.push(format!("{}\\{}", &cc.hostname, &cc.instance));
+            args.push("-T".to_string());
+        } else {
+            args.push(format!("tcp:{},{}", &cc.hostname, &cc.port));
+            args.push("-U".to_string());
+            args.push(cc.username.clone());
+            args.push("-P".to_string());
+            args.push(cc.password.clone());
+        }
+        let cmd = duct::cmd("bcp.exe", args)
             .dir(work_dir)
             .stdin_null()
             .stderr_to_stdout()

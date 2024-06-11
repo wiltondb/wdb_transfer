@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use tiberius::{AuthMethod, Client, Config};
+use tiberius::{AuthMethod, Client, Config, SqlBrowser};
 use tokio::net::TcpStream;
 use tokio::runtime::Runtime;
 use tokio_util::compat::Compat;
@@ -30,6 +30,8 @@ pub struct TdsConnConfig {
     pub password: String,
     pub database: String,
     pub accept_invalid_tls: bool,
+    pub use_win_auth: bool,
+    pub instance: String,
 }
 
 impl TdsConnConfig {
@@ -37,6 +39,7 @@ impl TdsConnConfig {
     pub fn create_runtime(&self) -> Result<Runtime, TransferError> {
         let res = tokio::runtime::Builder::new_current_thread()
             .enable_io()
+            .enable_time()
             .build()?;
         Ok(res)
     }
@@ -45,15 +48,22 @@ impl TdsConnConfig {
         runtime.block_on(async {
             let mut config = Config::new();
             config.host(&self.hostname);
-            config.port(self.port);
             config.database(dbname);
-            config.authentication(AuthMethod::sql_server(&self.username, &self.password));
             if self.accept_invalid_tls {
                 config.trust_cert();
             }
-            let tcp = TcpStream::connect(config.get_addr()).await?;
-            tcp.set_nodelay(true)?;
-            let client = Client::connect(config, tcp.compat_write()).await?;
+            let client = if self.use_win_auth {
+                config.authentication(AuthMethod::Integrated);
+                config.instance_name(&self.instance);
+                let tcp = TcpStream::connect_named(&config).await?;
+                Client::connect(config, tcp.compat_write()).await?
+            } else {
+                config.authentication(AuthMethod::sql_server(&self.username, &self.password));
+                config.port(self.port);
+                let tcp = TcpStream::connect(config.get_addr()).await?;
+                tcp.set_nodelay(true)?;
+                Client::connect(config, tcp.compat_write()).await?
+            };
             Ok(client)
         })
     }

@@ -67,6 +67,20 @@ impl ConnectDialog {
         self.correct_port_value();
     }
 
+    pub(super) fn on_win_auth_checkbox_changed(&mut self, _: nwg::EventData) {
+        if self.c.use_win_auth_checkbox.check_state() == nwg::CheckBoxState::Checked {
+            self.c.port_input.set_readonly(true);
+            self.c.username_input.set_readonly(true);
+            self.c.password_input.set_readonly(true);
+            self.c.instance_input.set_readonly(false);
+        } else {
+            self.c.port_input.set_readonly(false);
+            self.c.username_input.set_readonly(false);
+            self.c.password_input.set_readonly(false);
+            self.c.instance_input.set_readonly(true);
+        }
+    }
+
     fn correct_port_value(&self) {
         let text = self.c.port_input.text();
         if text.len() == 0 {
@@ -96,7 +110,9 @@ impl ConnectDialog {
             username: self.c.username_input.text(),
             password: self.c.password_input.text(),
             database: self.c.database_input.text(),
-            accept_invalid_tls: self.c.accept_invalid_tls_checkbox.check_state() == nwg::CheckBoxState::Checked
+            accept_invalid_tls: self.c.accept_invalid_tls_checkbox.check_state() == nwg::CheckBoxState::Checked,
+            use_win_auth: self.c.use_win_auth_checkbox.check_state() == nwg::CheckBoxState::Checked,
+            instance: self.c.instance_input.text(),
         }
     }
 
@@ -112,6 +128,13 @@ impl ConnectDialog {
             nwg::CheckBoxState::Unchecked
         };
         self.c.accept_invalid_tls_checkbox.set_check_state(accept_state);
+        let win_auth_state = if conn_config.use_win_auth {
+            nwg::CheckBoxState::Checked
+        } else {
+            nwg::CheckBoxState::Unchecked
+        };
+        self.c.use_win_auth_checkbox.set_check_state(win_auth_state);
+        self.c.instance_input.set_text(&conn_config.instance);
     }
 }
 
@@ -131,6 +154,7 @@ impl ui::PopupDialog<ConnectDialogArgs, ConnectDialogResult> for ConnectDialog {
 
     fn init(&mut self) {
         self.config_to_input(&self.args.conn_config);
+        self.on_win_auth_checkbox_changed(nwg::EventData::NoData);
         self.result = ConnectDialogResult::cancelled();
         ui::shake_window(&self.c.window);
     }

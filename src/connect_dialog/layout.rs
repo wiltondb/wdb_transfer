@@ -25,6 +25,8 @@ pub(super) struct ConnectDialogLayout {
     password_layout: nwg::FlexboxLayout,
     database_layout: nwg::FlexboxLayout,
     accept_invalid_tls_layout: nwg::FlexboxLayout,
+    use_win_auth_layout: nwg::FlexboxLayout,
+    instance_layout: nwg::FlexboxLayout,
     spacer_layout: nwg::FlexboxLayout,
     buttons_layout: nwg::FlexboxLayout,
 }
@@ -133,6 +135,37 @@ impl ui::Layout<ConnectDialogControls> for ConnectDialogLayout {
             .parent(&c.window)
             .flex_direction(ui::FlexDirection::Row)
             .auto_spacing(None)
+            .child(&c.use_win_auth_checkbox)
+            .child_size(ui::size_builder()
+                .width_auto()
+                .height_input_form_row()
+                .build())
+            .child_flex_grow(1.0)
+            .child_margin(ui::margin_builder()
+                .start_no_label_normal()
+                .build())
+            .build_partial(&self.use_win_auth_layout)?;
+
+        nwg::FlexboxLayout::builder()
+            .parent(&c.window)
+            .flex_direction(ui::FlexDirection::Row)
+            .auto_spacing(None)
+            .child(&c.instance_label)
+            .child_size(ui::size_builder()
+                .width_label_normal()
+                .height_input_form_row()
+                .build())
+            .child(&c.instance_input)
+            .child_margin(ui::margin_builder()
+                .start_pt(5)
+                .build())
+            .child_flex_grow(1.0)
+            .build_partial(&self.instance_layout)?;
+
+        nwg::FlexboxLayout::builder()
+            .parent(&c.window)
+            .flex_direction(ui::FlexDirection::Row)
+            .auto_spacing(None)
             .build_partial(&self.spacer_layout)?;
 
         nwg::FlexboxLayout::builder()
@@ -172,6 +205,8 @@ impl ui::Layout<ConnectDialogControls> for ConnectDialogLayout {
             .child_layout(&self.password_layout)
             .child_layout(&self.database_layout)
             .child_layout(&self.accept_invalid_tls_layout)
+            .child_layout(&self.use_win_auth_layout)
+            .child_layout(&self.instance_layout)
             .child_layout(&self.spacer_layout)
             .child_flex_grow(1.0)
             .child_layout(&self.buttons_layout)

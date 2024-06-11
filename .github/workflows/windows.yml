@@ -9,7 +9,7 @@ jobs:
       - name: clone-repository
         uses: actions/checkout@v3
       - name: build
-        run: cargo build --release
+        run: rustup install 1.70.0 && cargo +1.70.0 build --release
       - name: upload-dist
         if: true
         uses: actions/upload-artifact@v3

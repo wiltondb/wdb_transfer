@@ -26,12 +26,13 @@ use super::*;
 pub struct TdsConnConfig {
     pub hostname: String,
     pub port: u16,
+    pub instance: String,
+    pub use_named_instance: bool,
     pub username: String,
     pub password: String,
+    pub use_win_auth: bool,
     pub database: String,
     pub accept_invalid_tls: bool,
-    pub use_win_auth: bool,
-    pub instance: String,
 }
 
 impl TdsConnConfig {
@@ -52,13 +53,16 @@ impl TdsConnConfig {
             if self.accept_invalid_tls {
                 config.trust_cert();
             }
-            let client = if self.use_win_auth {
+            if self.use_win_auth {
                 config.authentication(AuthMethod::Integrated);
+            } else {
+                config.authentication(AuthMethod::sql_server(&self.username, &self.password));
+            }
+            let client = if self.use_named_instance {
                 config.instance_name(&self.instance);
                 let tcp = TcpStream::connect_named(&config).await?;
                 Client::connect(config, tcp.compat_write()).await?
             } else {
-                config.authentication(AuthMethod::sql_server(&self.username, &self.password));
                 config.port(self.port);
                 let tcp = TcpStream::connect(config.get_addr()).await?;
                 tcp.set_nodelay(true)?;

@@ -1,6 +1,6 @@
 [package]
 name = "wdb_transfer"
-version = "1.2.0"
+version = "1.3.0"
 authors = ["alex@wiltondb.com"]
 edition = "2018"
 
@@ -17,7 +17,7 @@ native-tls = "0.2.11"
 nwg = { version = "1.0.12", package = "native-windows-gui", features = ["all", "flexbox"] }
 nwg_ui = "1.0.1"
 regex = "1.10.3"
-tiberius = { version = "0.12.2", features = ["sql-browser-tokio"], default-features = true }
+tiberius = { path = "../tiberius", features = ["sql-browser-tokio"], default-features = true }
 tokio = { version = "1", features = ["net", "rt"] }
 tokio-util = { version = "0.7", features = ["compat"] }
 wildmatch = "2.1.1"

@@ -48,13 +48,15 @@ impl AppWindow {
     }
 
     pub(super) fn init(&mut self) {
-        self.conn_config.hostname = String::from("127.0.0.1");
+        self.conn_config.hostname = String::from("localhost");
         self.conn_config.port = 1433;
+        self.conn_config.use_named_instance = false;
+        self.conn_config.instance = String::from("SQLEXPRESS");
         self.conn_config.username = String::from("wilton");
+        // self.conn_config.password = String::from("wilton");
+        self.conn_config.use_win_auth = false;
         self.conn_config.database = String::from("master");
         self.conn_config.accept_invalid_tls = true;
-        self.conn_config.use_win_auth = false;
-        self.conn_config.instance = String::from("SQLEXPRESS");
 
         self.set_status_bar_dbconn_label("none");
 

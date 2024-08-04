@@ -172,11 +172,14 @@ impl ImportDialog {
             "1".to_string(),
             "-S".to_string(),
         );
-        if cc.use_win_auth {
-            args.push(format!("{}\\{}", &cc.hostname, &cc.instance));
-            args.push("-T".to_string());
+        if cc.use_named_instance {
+            args.push(format!("tcp:{}\\{}", &cc.hostname, &cc.instance));
         } else {
             args.push(format!("tcp:{},{}", &cc.hostname, &cc.port));
+        }
+        if cc.use_win_auth {
+            args.push("-T".to_string());
+        } else {
             args.push("-U".to_string());
             args.push(cc.username.clone());
             args.push("-P".to_string());

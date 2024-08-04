@@ -29,16 +29,17 @@ pub(super) struct ConnectDialogControls {
     pub(super) hostname_input: nwg::TextInput,
     pub(super) port_label: nwg::Label,
     pub(super) port_input: nwg::TextInput,
+    pub(super) instance_label: nwg::Label,
+    pub(super) instance_input: nwg::TextInput,
+    pub(super) use_named_instance_checkbox: nwg::CheckBox,
     pub(super) username_label: nwg::Label,
     pub(super) username_input: nwg::TextInput,
     pub(super) password_label: nwg::Label,
     pub(super) password_input: nwg::TextInput,
+    pub(super) use_win_auth_checkbox: nwg::CheckBox,
     pub(super) database_label: nwg::Label,
     pub(super) database_input: nwg::TextInput,
     pub(super) accept_invalid_tls_checkbox: nwg::CheckBox,
-    pub(super) use_win_auth_checkbox: nwg::CheckBox,
-    pub(super) instance_label: nwg::Label,
-    pub(super) instance_input: nwg::TextInput,
 
     pub(super) test_button: nwg::Button,
     pub(super) load_button: nwg::Button,
@@ -64,7 +65,7 @@ impl ui::Controls for ConnectDialogControls {
             .build(&mut self.icon)?;
 
         nwg::Window::builder()
-            .size((480, 300))
+            .size((480, 330))
             .icon(Some(&self.icon))
             .center(true)
             .title("DB Connection")
@@ -92,6 +93,23 @@ impl ui::Controls for ConnectDialogControls {
             .parent(&self.window)
             .build(&mut self.port_input)?;
         nwg::Label::builder()
+            .text("Instance:")
+            .font(Some(&self.font_normal))
+            .h_align(nwg::HTextAlign::Left)
+            .parent(&self.window)
+            .build(&mut self.instance_label)?;
+        nwg::TextInput::builder()
+            .readonly(true)
+            .font(Some(&self.font_normal))
+            .parent(&self.window)
+            .build(&mut self.instance_input)?;
+        nwg::CheckBox::builder()
+            .check_state(nwg::CheckBoxState::Unchecked)
+            .text("Connect to named MSSQL instance")
+            .font(Some(&self.font_normal))
+            .parent(&self.window)
+            .build(&mut self.use_named_instance_checkbox)?;
+        nwg::Label::builder()
             .text("Username:")
             .font(Some(&self.font_normal))
             .h_align(nwg::HTextAlign::Left)
@@ -112,6 +130,12 @@ impl ui::Controls for ConnectDialogControls {
             .font(Some(&self.font_normal))
             .parent(&self.window)
             .build(&mut self.password_input)?;
+        nwg::CheckBox::builder()
+            .check_state(nwg::CheckBoxState::Unchecked)
+            .text("Use Windows Authentication")
+            .font(Some(&self.font_normal))
+            .parent(&self.window)
+            .build(&mut self.use_win_auth_checkbox)?;
         nwg::Label::builder()
             .text("Database:")
             .font(Some(&self.font_normal))
@@ -128,23 +152,6 @@ impl ui::Controls for ConnectDialogControls {
             .font(Some(&self.font_normal))
             .parent(&self.window)
             .build(&mut self.accept_invalid_tls_checkbox)?;
-        nwg::CheckBox::builder()
-            .check_state(nwg::CheckBoxState::Unchecked)
-            .text("Use Windows Authentication")
-            .font(Some(&self.font_normal))
-            .parent(&self.window)
-            .build(&mut self.use_win_auth_checkbox)?;
-        nwg::Label::builder()
-            .text("Instance:")
-            .font(Some(&self.font_normal))
-            .h_align(nwg::HTextAlign::Left)
-            .parent(&self.window)
-            .build(&mut self.instance_label)?;
-        nwg::TextInput::builder()
-            .readonly(true)
-            .font(Some(&self.font_normal))
-            .parent(&self.window)
-            .build(&mut self.instance_input)?;
 
         nwg::Button::builder()
             .text("Test connection")
@@ -178,12 +185,13 @@ impl ui::Controls for ConnectDialogControls {
         ui::tab_order_builder()
             .control(&self.hostname_input)
             .control(&self.port_input)
+            .control(&self.instance_input)
+            .control(&self.use_named_instance_checkbox)
             .control(&self.username_input)
             .control(&self.password_input)
+            .control(&self.use_win_auth_checkbox)
             .control(&self.database_input)
             .control(&self.accept_invalid_tls_checkbox)
-            .control(&self.use_win_auth_checkbox)
-            .control(&self.instance_input)
             .control(&self.test_button)
             .control(&self.load_button)
             .control(&self.cancel_button)

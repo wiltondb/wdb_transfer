@@ -40,6 +40,11 @@ impl ui::Events<ConnectDialogControls> for ConnectDialogEvents {
             .handler(ConnectDialog::on_port_input_changed)
             .build(&mut self.events)?;
         ui::event_builder()
+            .control(&c.use_named_instance_checkbox)
+            .event(nwg::Event::OnButtonClick)
+            .handler(ConnectDialog::on_named_instance_checkbox_changed)
+            .build(&mut self.events)?;
+        ui::event_builder()
             .control(&c.use_win_auth_checkbox)
             .event(nwg::Event::OnButtonClick)
             .handler(ConnectDialog::on_win_auth_checkbox_changed)

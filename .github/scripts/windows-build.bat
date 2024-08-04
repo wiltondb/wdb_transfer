@@ -1,4 +1,4 @@
-@echo off
+@echo on
 
 pushd .. || exit /b 1
 git clone --branch sspi_response_header_type https://github.com/wiltondb/tiberius.git || exit /b 1

@@ -197,8 +197,8 @@ impl ImportDialog {
             });
         let reader = match cmd.reader() {
             Ok(reader) => reader,
-            Err(e) => return Err(TransferError::from_string(format!(
-                "bcp process spawn failure: {}", e)))
+            Err(e) => return Err(TransferError::from_bcp_error(
+                "bcp process spawn failure", e.to_string()))
         };
         let mut buf_reader = BufReader::new(&reader);
         loop {
@@ -213,18 +213,17 @@ impl ImportDialog {
                         progress.send_value(ln);
                     }
                 },
-                Err(e) => return Err(TransferError::from_string(format!(
-                    "bcp process failure: {}", e)))
+                Err(e) => return Err(TransferError::from_bcp_error(
+                    "bcp process failure", e.to_string()))
             };
         };
         match reader.try_wait() {
             Ok(opt) => match opt {
                 Some(_) => { },
-                None => return Err(TransferError::from_string(format!(
-                    "bcp process failure")))
+                None => return Err(TransferError::from_str("bcp process failure"))
             },
-            Err(e) => return Err(TransferError::from_string(format!(
-                "bcp process failure: {}", e)))
+            Err(e) => return Err(TransferError::from_bcp_error(
+                "bcp process failure", e.to_string()))
         }
 
         Ok(())

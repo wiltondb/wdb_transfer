@@ -132,7 +132,7 @@ impl ExportDialog {
     }
 
     fn run_bcp_format(progress: &ui::SyncNoticeValueSender<String>, cc: &TdsConnConfig, dest_dir: &str,
-               dbname: &str, schema: &str, table: &str) -> Result<String, io::Error> {
+               dbname: &str, schema: &str, table: &str) -> Result<String, TransferError> {
         progress.send_value(format!("Creating bcp format file: {}.{}", schema, table));
         let format_filename = format!("{}.{}.xml", schema, table);
         let mut args: Vec<String> = vec!(
@@ -173,8 +173,8 @@ impl ExportDialog {
             });
         let reader = match cmd.reader() {
             Ok(reader) => reader,
-            Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!(
-                "bcp process spawn failure: {}", e)))
+            Err(e) => return Err(TransferError::from_bcp_error(
+                "bcp process spawn failure", e.to_string()))
         };
         let mut buf_reader = BufReader::new(&reader);
         loop {
@@ -189,18 +189,17 @@ impl ExportDialog {
                         progress.send_value(ln);
                     }
                 },
-                Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!(
-                    "bcp process failure: {}", e)))
+                Err(e) => return Err(TransferError::from_bcp_error(
+                    "bcp process failure", e.to_string()))
             };
         };
         match reader.try_wait() {
             Ok(opt) => match opt {
                 Some(_) => { },
-                None => return Err(io::Error::new(io::ErrorKind::Other, format!(
-                        "bcp process failure")))
+                None => return Err(TransferError::from_str("bcp process failure"))
             },
-            Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!(
-                "bcp process failure: {}", e)))
+            Err(e) => return Err(TransferError::from_bcp_error(
+                "bcp process failure", e.to_string()))
         }
 
         Self::strip_collation_from_format_file(dest_dir, &format_filename)?;
@@ -209,7 +208,7 @@ impl ExportDialog {
     }
 
     fn run_bcp_data(progress: &ui::SyncNoticeValueSender<String>, cc: &TdsConnConfig, dest_dir: &str,
-                      dbname: &str, schema: &str, table: &str, format_filename: &str) -> Result<String, io::Error> {
+                      dbname: &str, schema: &str, table: &str, format_filename: &str) -> Result<String, TransferError> {
         progress.send_value(format!("Exporting data: {}.{}", schema, table));
         let data_filename = format!("{}.{}.bcp", schema, table);
         let mut args: Vec<String> = vec!(
@@ -248,8 +247,8 @@ impl ExportDialog {
             });
         let reader = match cmd.reader() {
             Ok(reader) => reader,
-            Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!(
-                "bcp process spawn failure: {}", e)))
+            Err(e) => return Err(TransferError::from_bcp_error(
+                "bcp process spawn failure", e.to_string()))
         };
         let mut buf_reader = BufReader::new(&reader);
         loop {
@@ -264,25 +263,24 @@ impl ExportDialog {
                         progress.send_value(ln);
                     }
                 },
-                Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!(
-                    "bcp process failure: {}", e)))
+                Err(e) => return Err(TransferError::from_bcp_error(
+                    "bcp process failure", e.to_string()))
             };
         };
         match reader.try_wait() {
             Ok(opt) => match opt {
                 Some(_) => { },
-                None => return Err(io::Error::new(io::ErrorKind::Other, format!(
-                    "bcp process failure")))
+                None => return Err(TransferError::from_str("bcp process failure"))
             },
-            Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!(
-                "bcp process failure: {}", e)))
+            Err(e) => return Err(TransferError::from_bcp_error(
+                "bcp process failure", e.to_string()))
         }
 
         Ok(data_filename)
     }
 
     fn compress_bcp_file(progress: &ui::SyncNoticeValueSender<String>, dest_dir: &str,
-                    data_filename: &str) -> Result<String, io::Error> {
+                    data_filename: &str) -> Result<String, TransferError> {
         progress.send_value(format!("Compressing: {}", data_filename));
         progress.send_value("");
         let compressed_filename = format!("{}.zstd", data_filename);
@@ -301,7 +299,7 @@ impl ExportDialog {
         Ok(compressed_filename)
     }
 
-    fn export_tables(progress: &ui::SyncNoticeValueSender<String>, cc: &TdsConnConfig, eargs: &ExportArgs, dest_dir: &str) -> Result<(), io::Error> {
+    fn export_tables(progress: &ui::SyncNoticeValueSender<String>, cc: &TdsConnConfig, eargs: &ExportArgs, dest_dir: &str) -> Result<(), TransferError> {
         for table in eargs.tables.iter() {
             let format_filename = Self::run_bcp_format(progress, cc, dest_dir, &eargs.dbname, &table.schema, &table.table)?;
             let data_filename = Self::run_bcp_data(progress, cc, dest_dir, &eargs.dbname, &table.schema, &table.table, &format_filename)?;
@@ -310,35 +308,33 @@ impl ExportDialog {
         Ok(())
     }
 
-    fn zip_dest_directory(progress: &ui::SyncNoticeValueSender<String>, dest_dir: &str, filename: &str) -> Result<(), io::Error> {
+    fn zip_dest_directory(progress: &ui::SyncNoticeValueSender<String>, dest_dir: &str, filename: &str) -> Result<(), TransferError> {
         let dest_dir_path = Path::new(dest_dir);
         let parent_path = match dest_dir_path.parent() {
             Some(path) => path,
-            None => return Err(io::Error::new(io::ErrorKind::PermissionDenied, format!(
-                "Error accessing destination directory parent")))
+            None => return Err(TransferError::from_str(
+                "Error accessing destination directory parent"))
         };
         let dest_dir_st = match dest_dir_path.to_str() {
             Some(st) => st,
-            None => return Err(io::Error::new(io::ErrorKind::PermissionDenied, format!(
-                "Error accessing destination directory")))
+            None => return Err(TransferError::from_str(
+                "Error accessing destination directory"))
         };
         let dest_file_buf = parent_path.join(filename);
         let dest_file_st = match dest_file_buf.to_str() {
             Some(st) => st,
-            None => return Err(io::Error::new(io::ErrorKind::PermissionDenied, format!(
-                "Error accessing destination file")))
+            None => return Err(TransferError::from_str(
+                "Error accessing destination file"))
         };
         let listener = |en: &str| {
             progress.send_value(en);
         };
-        if let Err(e) = zip_recurse::zip_directory_listen(dest_dir_st, dest_file_st, 0, listener) {
-            return Err(io::Error::new(io::ErrorKind::Other, e.to_string()))
-        };
+        zip_recurse::zip_directory_listen(dest_dir_st, dest_file_st, 0, listener)?;
         std::fs::remove_dir_all(dest_dir_path)?;
         Ok(())
     }
 
-    fn prepare_dest_dir(dest_parent_dir: &str, dest_filename: &str) -> Result<(String, String), io::Error> {
+    fn prepare_dest_dir(dest_parent_dir: &str, dest_filename: &str) -> Result<(String, String), TransferError> {
         let mut ext = Path::new(dest_filename).extension().unwrap_or(OsStr::new(""))
             .to_str().unwrap_or("").to_string();
         let mut filename = dest_filename.to_string();
@@ -351,13 +347,12 @@ impl ExportDialog {
         let dir_path = parent_dir_path.join(dirname);
         let dir_path_st = match dir_path.to_str() {
             Some(st) => st.to_string(),
-            None => return Err(io::Error::new(io::ErrorKind::Other, format!(
-                "Error reading directory name")))
+            None => return Err(TransferError::from_str("Error reading directory name"))
         };
         let _ = fs::remove_dir_all(&dir_path);
         if dir_path.exists() {
-            return Err(io::Error::new(io::ErrorKind::PermissionDenied, format!(
-                "Error removing directory: {}", dir_path_st)));
+            return Err(TransferError::from_string(format!(
+                "Error removing directory: {}", dir_path_st)))
         }
         fs::create_dir_all(dir_path)?;
         Ok((dir_path_st, filename))

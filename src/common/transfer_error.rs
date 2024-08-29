@@ -17,6 +17,8 @@
 use std::fmt;
 use std::io;
 
+use regex::Regex;
+
 #[derive(Debug)]
 pub struct TransferError {
     message: String
@@ -38,6 +40,19 @@ impl TransferError {
     pub fn from_str(message: &str) -> Self {
         Self {
             message: message.to_string()
+        }
+    }
+
+    pub fn from_bcp_error(prefix: &str, msg_with_password: String) -> Self {
+        let re = match Regex::new("(?P<pre>,\\s\"-P\",\\s\")(.+)(?P<post>\"])") {
+            Ok(re) => re,
+            Err(_) => return Self {
+                message: prefix.to_string()
+            }
+        };
+        let msg_wo_password = re.replace_all(&msg_with_password, "$pre******$post");
+        Self {
+            message: format!("{}: {}", prefix, msg_wo_password)
         }
     }
 }

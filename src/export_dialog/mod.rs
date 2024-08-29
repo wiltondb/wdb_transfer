@@ -32,6 +32,7 @@ use nwg::NativeUi;
 
 use crate::*;
 use common::TdsConnConfig;
+use common::TransferError;
 use nwg_ui as ui;
 use ui::Controls;
 use ui::Events;

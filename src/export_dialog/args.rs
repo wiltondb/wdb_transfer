@@ -15,7 +15,7 @@
  */
 
 use super::*;
-use crate::common::TableWithRowsCount;
+use crate::common_gui::TableWithRowsCount;
 
 
 #[derive(Default, Clone)]

@@ -31,7 +31,7 @@ use clipboard_win::set_clipboard;
 use nwg::NativeUi;
 
 use crate::*;
-use common::TableWithSize;
+use common_gui::TableWithSize;
 use common::TdsConnConfig;
 use common::TransferError;
 use nwg_ui as ui;

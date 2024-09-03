@@ -36,7 +36,7 @@ use ui::Controls;
 use ui::Events;
 use ui::Layout;
 use ui::PopupDialog;
-use common::TableWithRowsCount;
+use common_gui::TableWithRowsCount;
 use common::TdsConnConfig;
 use common::TransferError;
 

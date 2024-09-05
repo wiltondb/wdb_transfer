@@ -16,6 +16,7 @@
 
 mod common;
 
+use std::env;
 use std::path::PathBuf;
 use std::process;
 
@@ -30,7 +31,7 @@ use common::TdsConnConfig;
 use common::TransferError;
 
 fn main() {
-    let args = Command::new("WiltonDB data transfer CLI tool")
+    let args = Command::new("WiltonDB data transfer command-line tool")
         .author("WiltonDB Software")
         .version(common::labels::VERSION)
         .about("Data transfer tool for WiltonDB")
@@ -216,7 +217,7 @@ fn create_conn_cfg(args: &ArgMatches) -> Result<TdsConnConfig, TransferError> {
     let port_st = args.get_one::<String>("port").map(|s| s.to_string()).unwrap_or_default();
     let instance = args.get_one::<String>("instance").map(|s| s.to_string()).unwrap_or_default();
     let username = args.get_one::<String>("username").map(|s| s.to_string()).unwrap_or_default();
-    let password = args.get_one::<String>("password").map(|s| s.to_string()).unwrap_or_default();
+    let mut password = args.get_one::<String>("password").map(|s| s.to_string()).unwrap_or_default().to_string();
     let windows_auth = args.get_one::<bool>("windows_auth").map(|v| *v).unwrap_or(false);
     let database = args.get_one::<String>("database").map(|s| s.to_string()).unwrap_or_default();
     let check_certificate = args.get_one::<bool>("check_certificate").map(|v| *v).unwrap_or(false);
@@ -231,6 +232,11 @@ fn create_conn_cfg(args: &ArgMatches) -> Result<TdsConnConfig, TransferError> {
     };
     if instance.is_empty() && (port <= 0 || port >= 1<<16) {
         return Err(TransferError::from_str("'port' option must be specified with a value between 1 and 65535"));
+    }
+    if password.is_empty() {
+        if let Ok(pwd) = env::var("WDBTRANSFERPASSWORD") {
+            password = pwd;
+        }
     }
     if !windows_auth && (username.is_empty() || password.is_empty()) {
         return Err(TransferError::from_str("'username' and 'password' options must be specified"));

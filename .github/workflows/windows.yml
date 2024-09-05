@@ -12,8 +12,10 @@ jobs:
         run: cmd /c ".github\scripts\windows-build.bat"
       - name: upload-dist
         if: true
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: target/release/wdb_transfer.exe
+          name: gui
+          path: |
+            target/release/wdb_transfer.exe
+            target/release/wdb_transfer_cli.exe
           retention-days: 1

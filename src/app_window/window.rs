@@ -587,52 +587,15 @@ impl AppWindow {
     }
 
     fn load_import_file_entries(&mut self) {
-        use std::fs::File;
-        use std::io::BufReader;
-        use zip::ZipArchive;
-
         let file_path = self.c.import_file_input.text();
-        if !Path::new(&file_path).exists() {
-            ui::message_box_error(&format!("Specified file is not found, path: {}", file_path));
-            return;
-        }
-        let file = match File::open(&file_path) {
-            Ok(file) => file,
+        let progress_fun = |_: &str| { };
+        let tables =  match common::load_tables_from_file(&progress_fun, &file_path) {
+            Ok(tables) => tables,
             Err(e) => {
-                ui::message_box_error(&format!("Error opening file, path: {}, message: {}", file_path, e.to_string()));
+                ui::message_box_error(&e.to_string());
                 return;
             }
         };
-        let reader = BufReader::new(file);
-        let mut zip = match ZipArchive::new(reader) {
-            Ok(zip) => zip,
-            Err(e) => {
-                ui::message_box_error(&format!("Error opening ZIP file, path: {}, message: {}", file_path, e.to_string()));
-                return;
-            }
-        };
-        let mut tables: Vec<TableWithSize> = Vec::new();
-        for i in 0..zip.len() {
-            let entry = match zip.by_index(i) {
-                Ok(entry) => entry,
-                Err(e) => {
-                    ui::message_box_error(&format!("Error opening ZIP file, path: {}, message: {}", file_path, e.to_string()));
-                    return;
-                }
-            };
-            if entry.name().ends_with(".bcp.gz") || entry.name().ends_with(".bcp.zstd") {
-                let name_parts = entry.name().split("/").collect::<Vec<&str>>();
-                let name = name_parts[name_parts.len() - 1];
-                let tab = match TableWithSize::new(name, entry.size()) {
-                    Ok(tab) => tab,
-                    Err(e) => {
-                        ui::message_box_error(&format!("{}", e.to_string()));
-                        return;
-                    }
-                };
-                tables.push(tab);
-            }
-        }
         self.import_tables = tables;
         self.sort_import_tables(2, false);
         self.sort_import_tables(1, false);

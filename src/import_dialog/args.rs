@@ -17,14 +17,6 @@
 use super::*;
 
 
-#[derive(Default, Clone)]
-pub struct ImportArgs {
-    pub(super) dbname: String,
-    pub(super) tables: Vec<TableWithSize>,
-    pub(super) import_file: String,
-    pub(super) work_dir: String,
-}
-
 #[derive(Default)]
 pub struct ImportDialogArgs {
     pub(super) notice_sender: ui::SyncNoticeSender,

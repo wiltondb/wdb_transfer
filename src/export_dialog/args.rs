@@ -15,16 +15,6 @@
  */
 
 use super::*;
-use crate::common_gui::TableWithRowsCount;
-
-
-#[derive(Default, Clone)]
-pub struct ExportArgs {
-    pub(super) dbname: String,
-    pub(super) tables: Vec<TableWithRowsCount>,
-    pub(super) parent_dir: String,
-    pub(super) dest_filename: String,
-}
 
 #[derive(Default)]
 pub struct ExportDialogArgs {

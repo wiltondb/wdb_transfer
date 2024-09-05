@@ -17,7 +17,6 @@
 #![windows_subsystem = "windows"]
 
 mod common;
-mod common_gui;
 mod about_dialog;
 mod app_window;
 mod connect_check_dialog;

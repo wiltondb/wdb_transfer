@@ -14,25 +14,6 @@
  * limitations under the License.
  */
 
-#[derive(Default)]
-pub(super) struct ExportResult {
-    pub(super) error: String
-}
-
-impl ExportResult {
-    pub(super) fn success() -> Self {
-        Self {
-            error: Default::default()
-        }
-    }
-
-    pub(super) fn failure(error: String) -> Self {
-        Self {
-            error
-        }
-    }
-}
-
 #[derive(Default, Clone)]
 pub struct ExportDialogResult {
     pub success: bool,

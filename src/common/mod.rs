@@ -15,8 +15,24 @@
  */
 
 pub mod labels;
+mod load_tables_from_db;
+mod load_tables_from_file;
+mod run_export;
+mod run_import;
+mod table_with_rows_count;
+mod table_with_size;
 mod tds_conn_config;
 mod transfer_error;
 
+pub use load_tables_from_db::load_tables_from_db;
+pub use load_tables_from_file::load_tables_from_file;
+pub use run_export::ExportArgs;
+pub use run_export::ExportResult;
+pub use run_export::run_export;
+pub use run_import::ImportArgs;
+pub use run_import::ImportResult;
+pub use run_import::run_import;
+pub use table_with_rows_count::TableWithRowsCount;
+pub use table_with_size::TableWithSize;
 pub use tds_conn_config::TdsConnConfig;
 pub use transfer_error::TransferError;

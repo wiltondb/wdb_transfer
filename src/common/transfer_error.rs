@@ -80,3 +80,9 @@ impl From<zip::result::ZipError> for TransferError {
         Self::new(&value)
     }
 }
+
+impl From<std::num::ParseIntError> for TransferError {
+    fn from(value: std::num::ParseIntError) -> Self {
+        Self::new(&value)
+    }
+}

@@ -29,8 +29,8 @@ use ui::PopupDialog;
 
 use about_dialog::AboutDialog;
 use about_dialog::AboutDialogArgs;
-use common_gui::TableWithRowsCount;
-use common_gui::TableWithSize;
+use common::TableWithRowsCount;
+use common::TableWithSize;
 use common::TdsConnConfig;
 use connect_dialog::ConnectDialog;
 use connect_dialog::ConnectDialogArgs;

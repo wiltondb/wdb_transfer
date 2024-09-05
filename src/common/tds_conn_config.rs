@@ -72,6 +72,7 @@ impl TdsConnConfig {
         })
     }
 
+    #[allow(dead_code)]
     pub fn open_connection_default(&self, runtime: &Runtime) -> Result<Client<Compat<TcpStream>>, TransferError> {
         self.open_connection(runtime, &self.database)
     }

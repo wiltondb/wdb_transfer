@@ -14,24 +14,6 @@
  * limitations under the License.
  */
 
-#[derive(Default)]
-pub(super) struct ImportResult {
-    pub(super) error: String
-}
-
-impl ImportResult {
-    pub(super) fn success() -> Self {
-        Self {
-            error: Default::default()
-        }
-    }
-
-    pub(super) fn failure(error: String) -> Self {
-        Self {
-            error
-        }
-    }
-}
 
 #[derive(Default, Clone)]
 pub struct ImportDialogResult {

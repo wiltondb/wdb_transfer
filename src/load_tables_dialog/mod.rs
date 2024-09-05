@@ -36,9 +36,8 @@ use ui::Controls;
 use ui::Events;
 use ui::Layout;
 use ui::PopupDialog;
-use common_gui::TableWithRowsCount;
+use common::TableWithRowsCount;
 use common::TdsConnConfig;
-use common::TransferError;
 
 pub use args::LoadTablesDialogArgs;
 pub(self) use controls::LoadTablesDialogControls;

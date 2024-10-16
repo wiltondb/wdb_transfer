@@ -100,7 +100,7 @@ impl ui::Events<AppWindowControls> for AppWindowEvents {
 
         ui::event_builder()
             .control(&c.export_dbnames_combo)
-            .event(nwg::Event::OnComboxBoxSelection)
+            .event(nwg::Event::OnComboBoxClosed)
             .handler(AppWindow::on_export_dbname_changed)
             .build(&mut self.events)?;
         ui::event_builder()
